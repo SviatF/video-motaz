@@ -10,7 +10,7 @@
   --studio-border:#2b2c2f;
   --studio-ink:#f1f1f2;
   --studio-muted:#929399;
-  --studio-timeline:clamp(238px,28vh,290px);
+  --studio-timeline:clamp(258px,28vh,300px);
 }
 html,body{width:100%;min-width:320px;background:var(--studio-bg)}
 body{overflow:hidden}
