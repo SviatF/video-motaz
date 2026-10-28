@@ -18,6 +18,7 @@ jobs:
           node --check app.js
           node --check creative-tools.js
           node --check emoji-catalog.js
+          node --check emoji-labels-uk.js
           node --check creative-library-v2.js
           node --check fullscreen-overlays.js
           node --check uk-localization.js
@@ -30,6 +31,7 @@ jobs:
           test -s dist/app.js
           test -s dist/creative-tools.js
           test -s dist/emoji-catalog.js
+          test -s dist/emoji-labels-uk.js
           test -s dist/creative-library-v2.js
           test -s dist/fullscreen-overlays.js
           test -s dist/uk-localization.js
