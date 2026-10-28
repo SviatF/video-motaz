@@ -91,6 +91,21 @@ const cases=[
         const sized=await page.evaluate(()=>JSON.parse(localStorage.getItem('pts-creative-project-v1')).titles[0]);
         if(!(sized.size>placed.size))issues.push('canvas resize failed to scale title: '+JSON.stringify({placed,sized}));
       }
+      if(size.name==='desktop-reference'){
+        const previewResolution=await page.$eval('#screen',cv=>[cv.width,cv.height]);
+        if(previewResolution[0]!==1080||previewResolution[1]!==1920)issues.push('preview quality must default to 1080x1920: '+previewResolution);
+        await page.locator('#export-btn').click();
+        if(await page.locator('#export-quality').inputValue()!=='1080')issues.push('Full HD quality not selected by default');
+        if(await page.locator('#export-resolution').textContent()!=='1080 × 1920')issues.push('Full HD output dimension not shown');
+        if(!(await page.locator('#export-bitrate').textContent()).includes('16 Мбіт/с'))issues.push('Full HD bitrate not upgraded');
+        await page.locator('#export-quality').selectOption('720');
+        if(await page.locator('#export-resolution').textContent()!=='720 × 1280')issues.push('HD preset dimensions wrong');
+        await page.locator('#export-quality').selectOption('1440');
+        if(await page.locator('#export-resolution').textContent()!=='1440 × 2560')issues.push('2K dimensions wrong');
+        await page.locator('#export-quality').selectOption('2160');
+        if(await page.locator('#export-resolution').textContent()!=='2160 × 3840')issues.push('4K dimensions wrong');
+        await page.locator('#cancel-export').click();
+      }
       // Check the newly added creative controls on the wide desktop.
       if(size.name==='desktop-reference'){
         await page.locator('[data-workspace="creative"]').click();
@@ -231,6 +246,41 @@ const cases=[
       results.push({size:size.name,issues});
       await page.close();
     }
+
+    // End-to-end recording smoke test using an original synthetic 1.3s title.
+    // Confirms that high-quality export generates a playable file without
+    // uploading media or relying on paid transcoding services.
+    const qualityPage=await browser.newPage({viewport:{width:1280,height:800},acceptDownloads:true});
+    await qualityPage.goto(address);
+    await qualityPage.evaluate(()=>{
+      const project={
+        version:1,name:'Quality-QA',ratio:'9:16',media:[],clips:[],
+        titles:[{id:'test-title',text:'PTS EXPORT QUALITY',start:0,duration:1.3,animation:'none',size:6,x:50,y:45,rotation:0}],
+        captions:[],audios:[],stickers:[],effects:[],overlays:[],exportQuality:'1080'
+      };
+      localStorage.setItem('pts-creative-project-v1',JSON.stringify(project));
+    });
+    await qualityPage.reload({waitUntil:'load'});
+    await qualityPage.locator('#export-btn').click();
+    await qualityPage.locator('#export-quality').selectOption('1080');
+    const outputPromise=qualityPage.waitForEvent('download',{timeout:25000});
+    await qualityPage.locator('#start-export').click();
+    const output=await outputPromise;
+    const savedPath=await output.path();
+    const fileBytes=fs.statSync(savedPath).size;
+    if(fileBytes<3000) throw Error('Full HD video export too small: '+fileBytes);
+    // Optional ffprobe verification when hosted runner has FFmpeg installed.
+    const {spawnSync}=require('node:child_process');
+    const probe=spawnSync('ffprobe',['-v','error','-select_streams','v:0','-show_entries','stream=width,height','-of','csv=p=0',savedPath],{encoding:'utf8'});
+    if(probe.status===0){
+      const dim=probe.stdout.trim();
+      if(dim!=='1080,1920')throw Error('Full HD recorded dimensions unexpected: '+dim);
+      console.log('Full HD output dimensions verified:',dim);
+    }else console.log('ffprobe unavailable; checked successful download size and export settings.');
+    const reset=await qualityPage.$eval('#screen',c=>[c.width,c.height]);
+    if(reset[0]!==1080||reset[1]!==1920)throw Error('Preview dimensions not restored after export: '+reset);
+    console.log('Full HD export smoke PASS: '+fileBytes+' bytes, '+output.suggestedFilename());
+    await qualityPage.close();
   }finally{await browser.close();server.close();}
   const failures=results.filter(r=>r.issues.length);
   if(failures.length) throw Error('Layout regressions: '+JSON.stringify(failures));
