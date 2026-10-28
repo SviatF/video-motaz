@@ -23,7 +23,12 @@ const motions=[
  ["pulse","PULSE","💗"],["jitter","JITTER","⚡"],["orbit","ORBIT","🌍"],
  ["rain","DROP","💧"],["wave","WIGGLE","〰️"],["flash","BLINK","🌟"],
  ["slide","SLIDE","➡️"],["pop","POP","🎉"],["flip","FLIP","🃏"],
- ["bounce-in","BOUNCE IN","🚀"],["drift","DRIFT","🦋"]];
+ ["bounce-in","BOUNCE IN","🚀"],["drift","DRIFT","🦋"],
+ ["rubber","RUBBER","🎈"],["squash","SQUASH","🫧"],["tada","TADA!","🎉"],
+ ["shake-x","SHAKE X","💥"],["flip-y","FLIP Y","🪙"],
+ ["rise","RISE UP","📈"],["fall","FALL DOWN","🍂"],
+ ["breath","BREATHE","🧘"],["spiral","SPIRAL","🌀"],
+ ["glitch","GLITCH","⚡"],["pendulum","PENDULUM","🔔"],["wave-float","WAVE FLOAT","🌊"]];
 let audio=null,audioUrl=null;
 function stopAudio(){if(audio){audio.pause();audio.src="";audio=null;}if(audioUrl){URL.revokeObjectURL(audioUrl);audioUrl=null;}}
 const safe=v=>String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -92,8 +97,27 @@ function makePanel(node,actions){
   const list=tools.MUSIC.filter(s=>matches(s.name+" "+s.category+" "+s.bpm));
   results.innerHTML=header("ORIGINAL SYNTH LOOPS","МУЗИКА · "+list.length,"Без чужих аудіозаписів")+
    '<div class="fx-grid">'+list.map(s=>'<div class="music-card"><button type="button" class="music-preview" aria-label="Прослухати '+safe(s.name)+'" data-preview="'+s.id+'">▶</button><span class="creative-text"><b>'+safe(s.name)+'</b><small>'+safe(s.category)+' · '+s.bpm+' BPM</small></span><button type="button" class="music-add" data-music="'+s.id+'" aria-label="Додати '+safe(s.name)+'">＋</button></div>').join('')+'</div>'+
-   '<p class="library-fineprint">Усі лупи генеруються у твоєму браузері. Для рекламної кампанії можна завантажити власну музику в «МЕДІА».</p>';
+   '<p class="library-fineprint">Усі лупи створені нашим генератором, без семплів чужих хітів. Власну ліцензовану музику можна завантажити у вкладці «МЕДІА».</p>'+
+   '<div class="asset-lib-lead sound-heading"><div><span class="kicker">AUDIO FX / ORIGINAL</span><b>ЗВУКОВІ ЕФЕКТИ · '+tools.SFX.length+'</b></div><small>Whoosh · Pop · Impact · Notifications</small></div>'+
+   '<div class="fx-grid">'+tools.SFX.filter(s=>matches(s.name+" "+s.category)).map(s=>'<div class="music-card"><button type="button" class="music-preview" data-sfx-preview="'+s.id+'" aria-label="Прослухати '+safe(s.name)+'">▶</button><span class="creative-text"><b>'+safe(s.name)+'</b><small>'+safe(s.category)+' · '+s.seconds+' s</small></span><button type="button" class="music-add" data-sfx="'+s.id+'" aria-label="Додати '+safe(s.name)+'">＋</button></div>').join('')+'</div>';
   results.querySelectorAll("[data-music]").forEach(b=>b.onclick=async()=>{b.disabled=true;b.textContent="…";try{await actions.addMusic(await tools.musicFile(b.dataset.music));}catch(e){actions.error("Помилка музики: "+e.message);}finally{if(b.isConnected){b.disabled=false;b.textContent="＋";}}});
+  results.querySelectorAll("[data-sfx]").forEach(b=>b.onclick=async()=>{
+   b.disabled=true;b.textContent="…";
+   try{await actions.addMusic(await tools.sfxFile(b.dataset.sfx));}
+   catch(e){actions.error("Помилка SFX: "+e.message);}
+   finally{if(b.isConnected){b.disabled=false;b.textContent="＋";}}
+  });
+  results.querySelectorAll("[data-sfx-preview]").forEach(b=>b.onclick=async()=>{
+   const id=b.dataset.sfxPreview;
+   if(audio&&audio.dataset.trackId==="sfx:"+id){stopAudio();b.textContent="▶";return;}
+   stopAudio();b.disabled=true;b.textContent="…";
+   try{
+    const file=await tools.sfxFile(id),url=URL.createObjectURL(file);
+    const player=new Audio(url);player.dataset.trackId="sfx:"+id;player.volume=.55;
+    audio=player;audioUrl=url;player.addEventListener("ended",()=>{stopAudio();if(b.isConnected)b.textContent="▶";},{once:true});
+    await player.play();if(b.isConnected){b.disabled=false;b.textContent="■";}
+   }catch(e){stopAudio();actions.error("Не вдалося програти SFX: "+e.message);if(b.isConnected){b.disabled=false;b.textContent="▶";}}
+  });
   results.querySelectorAll("[data-preview]").forEach(b=>b.onclick=async()=>{
    const id=b.dataset.preview;
    if(audio&&audio.dataset.trackId===id){stopAudio();b.textContent="▶";return;}
