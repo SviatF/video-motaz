@@ -15,7 +15,7 @@ const queries={
  "зіроч":"star","ракета":"rocket","рука":"hand","квіти":"flower",
  "квітка":"flower","блискавка":"lightning","сум":"sad","сльоз":"cry",
  "собака":"dog","кіт":"cat","спорт":"sport","авто":"car","машин":"car",
- "дівчина":"woman","хлопець":"man","прапор":"flag"};
+ "дівчина":"woman","хлопець":"man","прапор":"flag","сніг":"snow","сніж":"snow","вогонь":"fire","полум":"flame","дощ":"rain","дим":"fog","туман":"fog","іскр":"spark","конфеті":"confetti","світл":"light","пелюст":"petal","сердеч":"heart"};
 const featured=["❤️","💖","💕","💗","💘","💝","😍","🥰","😘","🤩","🔥","✨","💫","🎉","🎁","💰","💸","💵","👀","🫶","👍","👏","🚀","⭐","🌟","😎","😂","🥹","🤯","💯","⚡","✅","❣️","🤍","🖤","💜","💙","💚","💛","🧡"];
 const motions=[
  ["bounce","BOUNCE","❤️"],["heartbeat","HEARTBEAT","💓"],
@@ -38,7 +38,7 @@ const featuredIds=new Set(featuredItems.map(e=>e.id));
 const emojiOrdered=featuredItems.concat(emojiItems.filter(e=>!featuredIds.has(e.id)));
 function makePanel(node,actions){
  const state={tab:"emoji",category:"all",search:"",limit:96};
- const tabs=[["emoji","EMOJI"],["motions","АНІМАЦІЇ"],["stickers","СТІКЕРИ"],["effects","FX"],["music","МУЗИКА"]];
+ const tabs=[["emoji","EMOJI"],["motions","АНІМАЦІЇ"],["stickers","СТІКЕРИ"],["overlays","ПОГОДА / VFX"],["effects","FX"],["music","МУЗИКА"]];
  node.innerHTML='<div class="asset-lib-toolbar">'+
   '<div class="asset-lib-nav" role="tablist" aria-label="Вкладки бібліотеки">'+
   tabs.map(t=>'<button type="button" data-library-tab="'+t[0]+'" role="tab" aria-selected="'+(t[0]===state.tab)+'" class="'+(t[0]===state.tab?'active':'')+'">'+t[1]+'</button>').join('')+
@@ -85,6 +85,19 @@ function makePanel(node,actions){
    results.innerHTML=header("VECTOR / MOTION","СТІКЕРИ · "+list.length,"Додаються на таймлайн")+
     '<div class="sticker-grid">'+list.map(s=>'<button type="button" class="sticker-tile" data-sticker="'+s.id+'"><span class="sticker-art">'+safe(s.symbol)+'</span><b>'+safe(s.name)+'</b><small>'+safe(s.group)+'</small></button>').join('')+'</div>';
    results.querySelectorAll("[data-sticker]").forEach(b=>b.onclick=()=>actions.addSticker(b.dataset.sticker));
+   return;
+  }
+  if(state.tab==="overlays"){
+   const list=global.PTSOverlays.PRESETS.filter(p=>matches(p.name+" "+p.desc+" "+p.tag));
+   results.innerHTML=header("FULL-FRAME VIDEO MOTION","OVERLAYS · "+list.length,"На весь екран / Поверх кадру")+
+    '<p class="motion-hint">Сніг, полум’я, туман, світлові частинки й атмосферні ефекти. Обери, щоб додати як окрему доріжку з регулюванням інтенсивності.</p>'+
+    '<div class="overlay-grid">'+list.map(p=>'<button type="button" class="overlay-tile" data-overlay="'+p.id+'"><span class="overlay-thumbnail"><canvas class="overlay-thumb" width="192" height="108" data-thumb="'+p.id+'"></canvas><i>'+p.icon+'</i></span><span class="overlay-copy"><b>'+safe(p.name)+'</b><small>'+safe(p.desc)+'</small></span><em>＋</em></button>').join('')+'</div>';
+   results.querySelectorAll("[data-overlay]").forEach(b=>b.onclick=()=>actions.addOverlay(b.dataset.overlay));
+   const thumbs=results.querySelectorAll("[data-thumb]");
+   for(const el of thumbs){
+    const c=el.getContext("2d");if(!c)continue;c.fillStyle="#090a0e";c.fillRect(0,0,192,108);
+    global.PTSOverlays.draw(c,192,108,{overlay:el.dataset.thumb,start:0,duration:20,intensity:90,opacity:90,size:140,speed:1,seed:37,tint:global.PTSOverlays.getPreset(el.dataset.thumb)?.tint},2.5);
+   }
    return;
   }
   if(state.tab==="effects"){
