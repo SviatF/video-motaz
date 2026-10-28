@@ -14,7 +14,7 @@ const motions={"bounce":"Підстрибування","heartbeat":"Биття �
 function translatePreset(type,item){
  if(!item)return item;
  const title=names[type]?.[item.id];
- if(title)item.name=title;
+ if(title){item._searchEnglish=item.name;item.name=title;}
  if(type==="music"||type==="sfx")item.category=genres[item.category]||item.category;
  if(type==="sticker")item.group=groups[item.group]||item.group;
  if(type==="overlay")item.tag=groups[item.tag]||item.tag;
