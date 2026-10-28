@@ -61,6 +61,36 @@ const cases=[
       await page.click('#add-title');
       const title=await page.locator('#text-track .clip').count();
       if(title===0) issues.push('adding text layer failed');
+      // Time-editing regression: drag the title along its track, then resize its right edge.
+      if(size.name==='desktop-reference'){
+        const titleClip=page.locator('#text-track .clip.title').first();
+        const initial=await page.evaluate(()=>JSON.parse(localStorage.getItem('pts-creative-project-v1')).titles[0]);
+        const titleBox=await titleClip.boundingBox();
+        const fromX=titleBox.x+titleBox.width*.45,fromY=titleBox.y+titleBox.height/2;
+        await page.mouse.move(fromX,fromY);await page.mouse.down();
+        await page.mouse.move(fromX+95,fromY,{steps:7});await page.mouse.up();
+        const moved=await page.evaluate(()=>JSON.parse(localStorage.getItem('pts-creative-project-v1')).titles[0]);
+        if(!(moved.start>initial.start+.5)) issues.push('timeline drag did not move title: '+JSON.stringify({initial,moved}));
+        const right=page.locator('#text-track .clip.title .clip-handle-right');
+        const rb=await right.boundingBox(),rx=rb.x+rb.width/2,ry=rb.y+rb.height/2;
+        await page.mouse.move(rx,ry);await page.mouse.down();
+        await page.mouse.move(rx+90,ry,{steps:6});await page.mouse.up();
+        const resized=await page.evaluate(()=>JSON.parse(localStorage.getItem('pts-creative-project-v1')).titles[0]);
+        if(!(resized.duration>moved.duration+.5))issues.push('timeline right trim failed: '+JSON.stringify({moved,resized}));
+        if(!await page.locator('#selection-box').isVisible())issues.push('selected title lacks on-canvas overlay');
+        // Verify Photoshop-style move and corner scale using real pointer gestures.
+        const overlayBox=page.locator('#selection-box'),sel=await overlayBox.boundingBox();
+        const sx=sel.x+sel.width*.5,sy=sel.y+sel.height*.5;
+        await page.mouse.move(sx,sy);await page.mouse.down();
+        await page.mouse.move(sx+40,sy+12,{steps:6});await page.mouse.up();
+        const placed=await page.evaluate(()=>JSON.parse(localStorage.getItem('pts-creative-project-v1')).titles[0]);
+        if(!(placed.x>50))issues.push('canvas drag failed to move title: '+placed.x);
+        const knob=page.locator('.resize-knob'),kb=await knob.boundingBox();
+        await page.mouse.move(kb.x+kb.width/2,kb.y+kb.height/2);await page.mouse.down();
+        await page.mouse.move(kb.x+kb.width/2+26,kb.y+kb.height/2+17,{steps:5});await page.mouse.up();
+        const sized=await page.evaluate(()=>JSON.parse(localStorage.getItem('pts-creative-project-v1')).titles[0]);
+        if(!(sized.size>placed.size))issues.push('canvas resize failed to scale title: '+JSON.stringify({placed,sized}));
+      }
       // Check the newly added creative controls on the wide desktop.
       if(size.name==='desktop-reference'){
         await page.locator('[data-workspace="creative"]').click();
@@ -79,6 +109,8 @@ const cases=[
         await page.locator('[data-emoji-category="Smileys & Emotion"]').click();
         if(await page.locator('.emoji-item').count()<40)issues.push('emoji category filter failed');
         await page.locator('[data-emoji-category="all"]').click();
+        const packs=await page.evaluate(()=>({music:window.PTSCreative?.MUSIC?.length,sfx:window.PTSCreative?.SFX?.length,motions:window.PTSCreative?.MOTION_PRESETS?.length}));
+        if(packs.music!==24||packs.sfx!==12||packs.motions!==28)issues.push('creative catalog counts incorrect: '+JSON.stringify(packs));
         const count=await page.evaluate(()=>window.PTSEmojis?.count);
         if(count!==3963)issues.push('emoji catalog count incorrect: '+count);
         if(await page.locator('.emoji-item').count()<60)issues.push('emoji grid did not render initial page');
@@ -92,6 +124,11 @@ const cases=[
         await page.locator('#prop-speed').dispatchEvent('change');
         const afterMotion=await page.evaluate(()=>JSON.parse(localStorage.getItem('pts-creative-project-v1')||'{}').stickers||[]);
         if(afterMotion[0]?.animation!=='heartbeat'||afterMotion[0]?.speed!==1.75)issues.push('emoji animation settings not persisted');
+        if(!await page.locator('#selection-box').isVisible())issues.push('emoji lacks on-canvas control');
+        // One-click extend to the full composition.
+        await page.locator('#fill-timeline').click();
+        const emojiFull=await page.evaluate(()=>JSON.parse(localStorage.getItem('pts-creative-project-v1')).stickers[0]);
+        if(emojiFull.duration<7.9||emojiFull.start!==0)issues.push('emoji full timeline stretch failed');
         await page.locator('#asset-search').fill('');
         await page.locator('[data-library-tab="stickers"]').click();
         await page.locator('[data-sticker="sale"]').click();
@@ -108,13 +145,22 @@ const cases=[
         await page.locator('[data-music="pulse"]').click();
         try{await page.waitForFunction(()=>document.querySelectorAll('#audio-track .clip').length>0,{timeout:15000});}
         catch(e){issues.push('music was not imported to audio track: '+e.message);}
+        await page.locator('[data-sfx="impact"]').click();
+        try{await page.waitForFunction(()=>document.querySelectorAll('#audio-track .clip').length>=2,{timeout:15000});}
+        catch(e){issues.push('SFX not added to audio track: '+e.message);}
+        const validWave=await page.evaluate(async()=>{
+          const f=await window.PTSCreative.musicFile('phonk'),b=new Uint8Array(await f.arrayBuffer());
+          const fx=await window.PTSCreative.sfxFile('impact'),c=new Uint8Array(await fx.arrayBuffer());
+          return String.fromCharCode(...b.slice(0,4))==='RIFF'&&String.fromCharCode(...c.slice(0,4))==='RIFF'&&b.length>60000&&c.length>1000;
+        });
+        if(!validWave)issues.push('music or SFX WAV generator invalid');
         const stored=await page.evaluate(()=>JSON.parse(localStorage.getItem('pts-creative-project-v1')||'{}'));
         if(stored.stickers?.length!==3||!stored.effects?.length||!stored.audios?.length)issues.push('new layers not persisted');
         await page.reload({waitUntil:'load'});
         await page.waitForTimeout(250);
         if(await page.locator('#fx-track .clip.sticker').count()!==3)issues.push('sticker lost after reload');
         if(await page.locator('#fx-track .clip.effect').count()!==1)issues.push('FX lost after reload');
-        if(await page.locator('#audio-track .clip').count()!==1)issues.push('music lost after reload');
+        if(await page.locator('#audio-track .clip').count()!==2)issues.push('music or SFX lost after reload');
       }
       await page.screenshot({path:path.resolve(__dirname,'../../layout-'+size.name+'.png')});
       console.log(size.name,JSON.stringify({stage:m.stage,transport:m.transport,timeline:m.timeline,overflowX:m.overflowX,errors:issues}));
