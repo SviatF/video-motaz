@@ -240,9 +240,28 @@ function renderInspector(){
   html+='<div class="field"><label for="prop-overlay-color">КОЛІР ЕФЕКТУ</label><input id="prop-overlay-color" type="color" value="'+h(c.tint||meta?.tint||"#ffffff")+'"></div>';
  }
  if(selected.kind==="caption"){
+  html+='<div class="caption-editor-label">ТИПОГРАФІКА ТА АНІМАЦІЯ</div>';
   html+='<div class="field"><label for="caption-style">СТИЛЬ СУБТИТРІВ</label><select id="caption-style">'+
    '<option value="classic">Класичні</option><option value="bold">Великі кінетичні</option>'+
    '<option value="highlight">Підсвічування слів</option></select></div>';
+  html+='<div class="field"><label for="caption-font">ШРИФТ</label><select id="caption-font">'+
+   '<option value="arial">Arial · Чіткий</option><option value="black">Arial Black · Жирний</option>'+
+   '<option value="impact">Impact · Рекламний</option><option value="trebuchet">Trebuchet · Сучасний</option>'+
+   '<option value="verdana">Verdana · Мінімалізм</option><option value="georgia">Georgia · Елегантний</option></select></div>';
+  html+=field("РОЗМІР ШРИФТУ, %","caption-size",c.fontSize??(c.style==="bold"?6:4.8),'type="number" min="2.3" max="12" step=".2"');
+  html+=field("ПОЗИЦІЯ ПО ВИСОТІ, %","caption-placement",c.placement??82,'type="number" min="15" max="95" step="1"');
+  html+='<div class="caption-color-grid">'+
+   '<label>КОЛІР ТЕКСТУ<input type="color" id="caption-font-color" value="'+h(c.fontColor||"#ffffff")+'"></label>'+
+   '<label>АКЦЕНТ СЛОВА<input type="color" id="caption-accent-color" value="'+h(c.accentColor||"#f4d36e")+'"></label>'+
+   '<label>КОЛІР ОБВОДКИ<input type="color" id="caption-outline-color" value="'+h(c.outlineColor||"#080808")+'"></label></div>';
+  html+=field("ТОВЩИНА ОБВОДКИ, %","caption-outline-size",c.outlineSize??12,'type="number" min="0" max="26" step="1"');
+  html+='<div class="field"><label for="caption-background">ПІДКЛАДКА</label><select id="caption-background">'+
+   '<option value="none">Без підкладки</option><option value="box">Темна плашка</option>'+
+   '<option value="pill">Заокруглена плашка</option></select></div>';
+  html+='<div class="field"><label for="caption-animation">АНІМАЦІЯ ПОЯВИ</label><select id="caption-animation">'+
+   '<option value="pop">Пружна поява</option><option value="slide">Плавний підйом</option>'+
+   '<option value="fade">Плавне проявлення</option><option value="none">Без анімації</option></select></div>';
+  if(c.automatic)html+='<button type="button" id="caption-apply-group" class="small-btn caption-apply">◆ ЗАСТОСУВАТИ ДО ВСІХ ФРАЗ ВІДЕО</button>';
  }
  if(selected.kind==="effect"){
   html+='<div class="mini">'+h(PTSCreative.getEffect(c.effect)?.desc||"Ефект кадру")+'</div>';
@@ -295,8 +314,27 @@ function renderInspector(){
   inspectorInput("prop-overlay-color",(obj,v)=>obj.tint=v);
  }
  if(selected.kind==="caption"){
-  $("caption-style").value=c.style||"classic";
-  inspectorInput("caption-style",(obj,v)=>obj.style=v);
+  const selects=[["caption-style","style",c.style||"classic"],["caption-font","fontFamily",c.fontFamily||"arial"],
+    ["caption-background","background",c.background||(c.style==="classic"?"box":"none")],
+    ["caption-animation","animation",c.animation||"pop"]];
+  for(const [id,key,value] of selects){$(id).value=value;inspectorInput(id,(obj,v)=>obj[key]=v);}
+  inspectorInput("caption-size",(obj,v)=>obj.fontSize=clamp(num(v,4.8),2.3,12));
+  inspectorInput("caption-placement",(obj,v)=>obj.placement=clamp(num(v,82),15,95));
+  inspectorInput("caption-outline-size",(obj,v)=>obj.outlineSize=clamp(num(v,12),0,26));
+  inspectorInput("caption-font-color",(obj,v)=>obj.fontColor=v);
+  inspectorInput("caption-accent-color",(obj,v)=>obj.accentColor=v);
+  inspectorInput("caption-outline-color",(obj,v)=>obj.outlineColor=v);
+  if($("caption-apply-group"))$("caption-apply-group").onclick=()=>{
+   const current=getSelected();if(!current)return;
+   const props=["style","fontFamily","fontSize","placement","outlineSize","fontColor","accentColor","outlineColor","animation","background"];
+   let n=0;
+   for(const item of state.captions){
+    if(item.id===current.id||!item.automatic||item.sourceId!==current.sourceId)continue;
+    for(const key of props)item[key]=current[key];
+    n++;
+   }
+   persist();toast("Стиль застосовано до "+(n+1)+" фраз");
+  };
  }
  if(selected.kind==="effect")inspectorInput("prop-intensity",(obj,v)=>obj.intensity=clamp(num(v,obj.intensity),0,150));
  if(selected.kind!=="video")inspectorInput("prop-start",(obj,v)=>obj.start=Math.max(0,num(v,obj.start)));
