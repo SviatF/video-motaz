@@ -1,0 +1,32 @@
+/* PTS Creative Studio · Український словник для вбудованих медіапресетів.
+   Внутрішні ID, назви файлів та вміст існуючих проєктів не змінюються. */
+(function(global){"use strict";
+const names={
+ sticker:{"sale":"ЗНИЖКА −50%","shop":"КУПИТИ ЗАРАЗ","new":"НОВИНКА","arrow":"Рухома стрілка","star":"Зоряний спалах","heart":"Сердечко","check":"Підтверджено","sparkles":"Іскри","badge":"Хіт продажів","bubble":"Хмаринка діалогу","price":"Зниження ціни","free":"Безкоштовна доставка","notification":"Сповіщення","comment":"Новий коментар","countdown":"Зворотний відлік","click":"Натисни сюди","arrow-down":"Стрілка вниз","double-arrow":"Гортай далі","play":"Відтворення","crown":"Корона","gift":"Подарунок","fire":"Полум’я","ring":"Кільце виділення","progress":"Кільце завантаження","burst":"Спалах","underline":"Підкреслення","location":"Позначка місця"},
+ effect:{"flash":"Світловий спалах","shake":"Ударне тремтіння","zoom":"Динамічне наближення","grain":"Плівкова зернистість","vignette":"Темна віньєтка","mono":"Чорно-білий стиль","letterbox":"Кіноформат","sweep":"Світловий промінь","contrast":"Сильний контраст","blur":"Мрійлива розмитість","sepia":"Вінтажна плівка","invert":"Негатив","strobe":"Стробоскоп","glow":"М’яке сяйво","fade-black":"Затемнення","cool":"Холодний тон"},
+ overlay:{"snow":"Кінематографічний сніг","snowstorm":"Снігова хуртовина","embers":"Вогняні жаринки","fire":"Полум’я по кадру","rain":"Нічний дощ","fog":"Кінематографічний туман","dust":"Золотий пил","bokeh":"М’яке боке","lightleak":"Світлові відблиски","sparkles":"Чарівні іскри","confetti":"Святкове конфеті","petals":"Пелюстки в повітрі","hearts":"Летючі сердечка","bubbles":"М’які бульбашки","ash":"Летючий попіл","stars":"Зоряне поле"},
+ music:{"pulse":"КІНОІМПУЛЬС","luxury":"РОЗКІШНИЙ МІНІМАЛІЗМ","upbeat":"ЕНЕРГІЙНЕ ПРОМО","tension":"ТЕМНА НАПРУГА","bright":"РУХ БРЕНДУ","neon":"НЕОНОВИЙ РИВОК","phonk":"НІЧНИЙ ФОНК","house":"ГЛИБОКИЙ ГАУС","afro":"АФРОЗАХІД","hyper":"ІСКРА ГІПЕРПОПУ","future":"ПІДЙОМ БАСУ","drill":"МІСЬКИЙ БІТ","beauty":"БЛИСК КРАСИ","runway":"ПОДІУМНИЙ ЕЛЕКТРО","tropical":"ТРОПІЧНА КАМПАНІЯ","glitch":"ЦИФРОВИЙ ЗБІЙ","sports":"СПОРТИВНИЙ ІМПУЛЬС","soft":"М’ЯКИЙ ЛАУНЖ","retail":"ДРАЙВ РОЗПРОДАЖУ","retro":"РЕТРОСИНТЕЗАТОР","fashion":"МОДНИЙ РИТМ","chill":"СПОКІЙНИЙ БІТ","uplift":"КІНОПІДНЕСЕННЯ","club":"КЛУБНА ЕНЕРГІЯ","jersey":"КЛУБНИЙ СТРИБОК","funk":"БРАЗИЛЬСЬКИЙ ФАНК","sped":"ПРИСКОРЕНЕ СЯЙВО","slowed":"ПОВІЛЬНА ПІВНІЧ","reel-house":"ВІРУСНИЙ ГАУС","amapiano":"ХВИЛЯ АМАПІАНО","ukg":"БРИТАНСЬКИЙ ГАРАЖ","hardgroove":"ЖОРСТКИЙ ГРУВ","reverb":"МРІЙЛИВЕ ВІДЛУННЯ","dramatic":"ДРАМАТИЧНИЙ МОНТАЖ","luxury-club":"МОДНИЙ КЛУБ","trap-remix":"ТРЕП-ПЕРЕМИКАННЯ"},
+ sfx:{"whoosh":"Звук прольоту","pop":"Мультяшний хлопок","click":"Натискання кнопки","impact":"Кінематографічний удар","rise":"Наростання","bell":"Звук сповіщення","sparkle":"Звук іскор","snap":"Клацання пальцями","drop":"Басовий спад","swoosh":"Швидкий помах","tada":"Переможний акцент","tick":"Тікання таймера"}
+};
+const groups={"CTA":"Заклики до дії","SHAPES":"Форми","AD BADGES":"Рекламні позначки","SOCIAL":"Соцмережі","LUXURY":"Преміум","LIFESTYLE":"Стиль життя","WINTER":"Зима","FIRE":"Вогонь","WEATHER":"Погода","ATMOSPHERE":"Атмосфера","LIGHT":"Світло","PARTICLES":"Частинки","SPACE":"Космос"};
+const genres={"Action / Ads":"Екшн / Реклама","Beauty / Fashion":"Краса / Мода","Reels / Retail":"Рілси / Торгівля","Teaser / Hook":"Тизер / Перші секунди","Corporate / B2B":"Бізнес / B2B","Electro / Nightlife":"Електроніка / Нічне життя","Phonk / Cars":"Фонк / Авто","House / Lifestyle":"Гаус / Стиль життя","Afro / Travel":"Афро / Подорожі","Hyperpop / Fashion":"Гіперпоп / Мода","Future Bass / Ads":"Ф’ючер-бас / Реклама","Urban / Street":"Міський стиль","Beauty / Minimal":"Краса / Мінімалізм","Fashion / Runway":"Мода / Подіум","Summer / Reels":"Літо / Рілси","Tech / SaaS":"Технології / Сервіси","Sports / Fitness":"Спорт / Фітнес","Wellness / Spa":"Відпочинок / СПА","Retail / Offers":"Торгівля / Акції","Retro / Auto":"Ретро / Авто","Fashion / Social":"Мода / Соцмережі","Coffee / Lifestyle":"Кава / Стиль життя","Brand / Motivation":"Бренд / Мотивація","Party / Events":"Вечірки / Події","Jersey Club / Viral Edits":"Джерсі-клаб / Вірусні ролики","Brazilian Funk / Reels":"Бразильський фанк / Рілси","Speed-Up / Fashion":"Прискорений / Мода","Slowed / Atmosphere":"Сповільнений / Атмосфера","House / Hook":"Гаус / Початок ролика","Amapiano / Lifestyle":"Амапіано / Стиль життя","UK Garage / Street":"Британський гараж / Місто","Techno / Fitness":"Техно / Фітнес","Ambient / Cinematic":"Ембієнт / Кіно","Trailer / Ad Hook":"Трейлер / Реклама","Luxury / Runway":"Преміум / Подіум","Trap / Transition":"Треп / Перехід","Transitions":"Переходи","Stickers":"Наліпки","UI / CTA":"Інтерфейс / Заклик","Ads / Hooks":"Реклама / Початок","Social":"Соцмережі","Beauty":"Краса","Drops":"Звукові спади","CTA / Offers":"Заклики / Пропозиції","Timers":"Таймери"};
+const motions={"bounce":"Підстрибування","heartbeat":"Биття серця","float":"Плавання","swing":"Погойдування","spin":"Обертання","pulse":"Пульсація","jitter":"Тремтіння","orbit":"Орбіта","rain":"Падіння","wave":"Хвиля","flash":"Мерехтіння","slide":"Зсув","pop":"Вискочити","flip":"Переворот","bounce-in":"Пружна поява","drift":"Плавний рух","rubber":"Гумовий рух","squash":"Стискання","tada":"Святковий акцент","shake-x":"Горизонтальне тремтіння","flip-y":"Вертикальний переворот","rise":"Підйом","fall":"Падіння","breath":"Дихання","spiral":"Спіраль","glitch":"Цифровий збій","pendulum":"Маятник","wave-float":"Плавна хвиля"};
+function translatePreset(type,item){
+ if(!item)return item;
+ const title=names[type]?.[item.id];
+ if(title)item.name=title;
+ if(type==="music"||type==="sfx")item.category=genres[item.category]||item.category;
+ if(type==="sticker")item.group=groups[item.group]||item.group;
+ if(type==="overlay")item.tag=groups[item.tag]||item.tag;
+ return item;
+}
+function apply(){
+ const t=global.PTSCreative,o=global.PTSOverlays;
+ if(t){
+  for(const [type,list] of [["sticker",t.STICKERS],["effect",t.EFFECTS],["music",t.MUSIC],["sfx",t.SFX]])(list||[]).forEach(x=>translatePreset(type,x));
+ }
+ if(o)(o.PRESETS||[]).forEach(x=>translatePreset("overlay",x));
+}
+global.PTSUk={names,groups,genres,motions,apply,motion:id=>motions[id]||"Анімація",emojiName:emoji=>"Емодзі "+emoji};
+apply();
+})(window);
