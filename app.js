@@ -374,8 +374,12 @@ selectionBox.addEventListener("pointermove",e=>{
   item.x=clamp(d.x+dx/canvas.width*100,0,100);
   item.y=clamp(d.y+dy/canvas.height*100,0,100);
  }else if(d.mode==="resize"){
-  const cx=d.x*canvas.width/100,cy=d.y*canvas.height/100;
-  const ratio=clamp(Math.hypot(p.x-cx,p.y-cy)/d.distance,.15,5);
+  // The bottom-right resize handle behaves like a design-tool handle:
+  // dragging it right/down grows the object; left/up shrinks it.
+  // Use pointer displacement, not distance from center (which can reverse
+  // when the handle crosses the center or when a rotated box is selected).
+  const delta=(dx+dy)/Math.max(80,Math.min(canvas.width,canvas.height)*.28);
+  const ratio=clamp(1+delta,.15,5);
   if(d.kind==="title")item.size=clamp(d.scale*ratio,2,25);
   else item.scale=clamp(d.scale*ratio,3,90);
  }else if(d.mode==="rotate"){
