@@ -619,3 +619,11 @@ input[type="range"]{accent-color:#ececec}
 .library-expanded .asset-lib-nav{grid-template-columns:repeat(4,minmax(0,1fr))}
 .library-expanded .asset-lib-nav button{min-height:39px}
 @media(max-width:680px){.asset-lib-nav{grid-template-columns:repeat(3,minmax(0,1fr))}.library-expanded .asset-lib-nav{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+/* VIDEO QUALITY / EXPORT RESOLUTION CONTROL */
+.export-quality-field{display:flex;flex-direction:column;gap:9px;margin:22px 0 18px}
+.export-quality-field>label{font-size:10px;font-weight:850;letter-spacing:1.05px;color:#e6e7e9}
+.export-quality-field select{display:block;width:100%;min-height:41px;background:#25262a;color:#f8f8f8;border:1px solid #66686e;border-radius:4px;padding:8px 11px;font-size:12px;cursor:pointer}
+.export-quality-field select:disabled{opacity:.56;cursor:not-allowed}
+.export-quality-field small{color:#a4a6ae;font-size:10px;line-height:1.5}
+.export-bitrate{font-size:10px!important;color:#bdc0c7!important;margin-top:-8px!important}
