@@ -58,7 +58,7 @@ async function importFiles(files){
 function renderAssets(){
  const el=$("asset-list");$("asset-count").textContent=String(state.media.length).padStart(2,"0");
  if(!state.media.length){el.innerHTML='<div class="empty">Завантаж матеріали, щоб розпочати монтаж.</div>';return;}
- el.innerHTML=state.media.map(a=>'<button class="asset" data-add="'+h(a.id)+'"><span class="asset-icon">'+(a.kind==="video"?"▣":a.kind==="image"?"▧":"♫")+'</span><span class="asset-info"><b title="'+h(a.name)+'">'+h(a.name)+'</b><small>'+a.kind.toUpperCase()+' / '+fmt(a.duration)+' SEC</small></span><span class="plus">＋</span></button>').join("");
+ el.innerHTML=state.media.map(a=>'<button class="asset" data-add="'+h(a.id)+'"><span class="asset-icon">'+(a.kind==="video"?"▣":a.kind==="image"?"▧":"♫")+'</span><span class="asset-info"><b title="'+h(a.name)+'">'+h(a.name)+'</b><small>'+({video:"ВІДЕО",image:"ЗОБРАЖЕННЯ",audio:"АУДІО"}[a.kind]||"ФАЙЛ")+' / '+fmt(a.duration)+' С</small></span><span class="plus">＋</span></button>').join("");
  el.querySelectorAll("[data-add]").forEach(b=>b.addEventListener("click",()=>{
   const a=getMedia(b.dataset.add);if(!a)return;
   if(a.kind==="audio"){const item={id:uid(),mediaId:a.id,start:now,duration:a.duration,trim:0,volume:1,loop:false};state.audios.push(item);selected={kind:"audio",id:item.id};}
@@ -118,8 +118,8 @@ function redrawTimeline(){
    const item=document.createElement("button");item.type="button";
    item.className="clip "+kind+(selected&&selected.id===clip.id?" selected":"");
    item.style.left=clip.start*pixels+"px";item.style.width=Math.max(11,clip.duration*pixels-3)+"px";
-   item.title=(kind==="video"?getMedia(clip.mediaId)?.name:kind==="audio"?getMedia(clip.mediaId)?.name:kind==="sticker"?(clip.sticker==="emoji"?(clip.name||clip.emoji):PTSCreative.getSticker(clip.sticker)?.name):kind==="effect"?PTSCreative.getEffect(clip.effect)?.name:kind==="overlay"?PTSOverlays.getPreset(clip.overlay)?.name:clip.text)||"Фрагмент";
-   item.textContent=(kind==="video"?"▣ ":kind==="audio"?"♫ ":kind==="title"?"T ":kind==="sticker"?"✦ ":kind==="effect"?"FX ":kind==="overlay"?"❄ ":"CC ")+(kind==="video"||kind==="audio"?(getMedia(clip.mediaId)?.name||"Немає файлу"):kind==="sticker"?(clip.sticker==="emoji"?(clip.emoji||"❤️")+" EMOJI":PTSCreative.getSticker(clip.sticker)?.name||"Стікер"):kind==="effect"?(PTSCreative.getEffect(clip.effect)?.name||"Ефект"):kind==="overlay"?(PTSOverlays.getPreset(clip.overlay)?.name||"Overlay"):(clip.text||"Текст"));
+   item.title=(kind==="video"?getMedia(clip.mediaId)?.name:kind==="audio"?getMedia(clip.mediaId)?.name:kind==="sticker"?(clip.sticker==="emoji"?(PTSUk.emojiName(clip.emoji||"❤️")):PTSCreative.getSticker(clip.sticker)?.name):kind==="effect"?PTSCreative.getEffect(clip.effect)?.name:kind==="overlay"?PTSOverlays.getPreset(clip.overlay)?.name:clip.text)||"Фрагмент";
+   item.textContent=(kind==="video"?"▣ ":kind==="audio"?"♫ ":kind==="title"?"T ":kind==="sticker"?"✦ ":kind==="effect"?"FX ":kind==="overlay"?"❄ ":"CC ")+(kind==="video"||kind==="audio"?(getMedia(clip.mediaId)?.name||"Файл недоступний"):kind==="sticker"?(clip.sticker==="emoji"?(clip.emoji||"❤️")+" ЕМОДЗІ":PTSCreative.getSticker(clip.sticker)?.name||"Стікер"):kind==="effect"?(PTSCreative.getEffect(clip.effect)?.name||"Ефект"):kind==="overlay"?(PTSOverlays.getPreset(clip.overlay)?.name||"Накладання"):(clip.text||"Текст"));
    item.dataset.clipId=clip.id;
    item.dataset.clipKind=kind;
    item.innerHTML='<span class="clip-handle clip-handle-left" title="Підрізати початок" data-handle="left"></span>'+
@@ -133,7 +133,7 @@ function redrawTimeline(){
    track.appendChild(item);
   });
  });
- $("duration-label").textContent=fmt(length)+" SEC";$("total-time").textContent=timecode(length);
+ $("duration-label").textContent=fmt(length)+" С";$("total-time").textContent=timecode(length);
  positionHead();
 }
 function positionHead(){$("playhead").style.left=(now*num($("zoom").value,65))+"px";$("current-time").textContent=timecode(now);}
@@ -142,16 +142,16 @@ function inspectorInput(id,fn){const el=$(id);if(el)el.addEventListener("change"
 function renderInspector(){
  const node=$("inspector"),c=getSelected();
  if(!c){node.innerHTML='<p class="hint">Обери фрагмент на таймлайні, щоб налаштувати його параметри.</p>';return;}
- const labels={video:"ВІДЕО / ФОТО",title:"АНІМОВАНИЙ ТЕКСТ",caption:"СУБТИТРИ",audio:"АУДІО / ОЗВУЧКА",sticker:"СТІКЕР / CTA",effect:"MOTION FX",overlay:"FULLSCREEN MOTION"};
+ const labels={video:"ВІДЕО / ФОТО",title:"АНІМОВАНИЙ ТЕКСТ",caption:"СУБТИТРИ",audio:"АУДІО / ОЗВУЧКА",sticker:"НАЛІПКА / ЗАКЛИК",effect:"ВІДЕОЕФЕКТ",overlay:"ЕФЕКТ НА ВЕСЬ КАДР"};
  let html='<h3>'+(labels[selected.kind]||"ЕЛЕМЕНТ")+'</h3>';
  if(selected.kind==="video"||selected.kind==="audio"){const m=getMedia(c.mediaId);html+='<div class="mini">'+h(m?.name||"Медіа недоступне")+'</div>';}
  const editableText=selected.kind==="title"||selected.kind==="caption"||(selected.kind==="sticker"&&["sale","shop","new"].includes(c.sticker));
  if(editableText)html+='<div class="field"><label for="prop-text">ТЕКСТ</label><textarea id="prop-text">'+h(c.text||"")+'</textarea></div>';
  if(selected.kind==="title"||selected.kind==="sticker"){
   const choices=selected.kind==="title"
-   ?[['fade','Плавна поява'],['slide','Підйом'],['pop','Масштабування'],['typewriter','Друкарська машинка'],['pulse','Пульсація'],['bounce','Bounce'],['none','Без анімації']]
+   ?[['fade','Плавна поява'],['slide','Підйом'],['pop','Масштабування'],['typewriter','Друкарська машинка'],['pulse','Пульсація'],['bounce','Підстрибування'],['none','Без анімації']]
    :[['pop','Pop In'],['bounce','Bounce'],['heartbeat','Heartbeat'],['bounce-in','Bounce In'],['pulse','Pulse'],['float','Floating'],['spin','Spin'],['slide','Slide In'],['jitter','Jitter'],['orbit','Orbit'],['rain','Drop'],['wave','Wiggle'],['flash','Blink'],['flip','Flip'],['swing','Swing'],['drift','Drift'],['rubber','Rubber'],['squash','Squash'],['tada','Tada'],['shake-x','Shake X'],['flip-y','Flip Y'],['rise','Rise'],['fall','Fall'],['breath','Breathe'],['spiral','Spiral'],['glitch','Glitch'],['pendulum','Pendulum'],['wave-float','Wave Float']];
-  html+='<div class="field"><label for="prop-animation">АНІМАЦІЯ</label><select id="prop-animation">'+choices.map(([id,n])=>'<option value="'+id+'">'+n+'</option>').join('')+'</select></div>';
+  html+='<div class="field"><label for="prop-animation">АНІМАЦІЯ</label><select id="prop-animation">'+choices.map(([id,n])=>'<option value="'+id+'">'+(selected.kind==="sticker"?PTSUk.motion(id):n)+'</option>').join('')+'</select></div>';
  }
  if(selected.kind==="title"){
   html+=field("ПОЗИЦІЯ X, %","prop-x",c.x??50,'type="number" min="0" max="100" step="1"');
@@ -160,7 +160,7 @@ function renderInspector(){
   html+=field("ВИСОТА РОЗМІЩЕННЯ, %","prop-y",c.y,'type="number" min="5" max="95" step="1"');
  }
  if(selected.kind==="sticker"){
-  if(c.sticker==="emoji")html+=field("EMOJI / СИМВОЛ","prop-emoji",c.emoji||"❤️",'type="text" maxlength="48"');
+  if(c.sticker==="emoji")html+=field("ЕМОДЗІ / СИМВОЛ","prop-emoji",c.emoji||"❤️",'type="text" maxlength="48"');
   html+=field("ШВИДКІСТЬ АНІМАЦІЇ","prop-speed",c.speed??1,'type="number" min=".25" max="4" step=".25"');
   html+=field("ПОЗИЦІЯ X, %","prop-x",c.x,'type="number" min="0" max="100" step="1"');
   html+=field("ПОЗИЦІЯ Y, %","prop-y",c.y,'type="number" min="0" max="100" step="1"');
@@ -173,11 +173,11 @@ function renderInspector(){
   html+='<p class="overlay-help">Ефект охоплює весь відеокадр. Натисни «На всю довжину» для повного ролика або змінюй краї кліпу на таймлайні.</p>';
   html+='<div class="mini">'+h(meta?.name||c.overlay)+' · '+h(meta?.tag||"")+'</div>';
   if(state.overlays.length>1){
-    html+='<div class="field"><label>ШАРИ FULLSCREEN FX</label><div class="overlay-layer-list">'+state.overlays.map(o=>'<button type="button" data-select-overlay="'+h(o.id)+'" class="'+(o.id===c.id?'current':'')+'">'+h(PTSOverlays.getPreset(o.overlay)?.name||o.overlay)+' <span>'+fmt(o.start)+'s</span></button>').join('')+'</div></div>';
+    html+='<div class="field"><label>ШАРИ FULLSCREEN FX</label><div class="overlay-layer-list">'+state.overlays.map(o=>'<button type="button" data-select-overlay="'+h(o.id)+'" class="'+(o.id===c.id?'current':'')+'">'+h(PTSOverlays.getPreset(o.overlay)?.name||o.overlay)+' <span>'+fmt(o.start)+' с</span></button>').join('')+'</div></div>';
   }
 
   html+=field("ІНТЕНСИВНІСТЬ, %","prop-density",c.intensity??65,'type="number" min="5" max="150" step="5"');
-  html+=field("ШВИДКІСТЬ, X","prop-overlay-speed",c.speed??1,'type="number" min=".05" max="5" step=".1"');
+  html+=field("ШВИДКІСТЬ, ×","prop-overlay-speed",c.speed??1,'type="number" min=".05" max="5" step=".1"');
   html+=field("РОЗМІР ЧАСТИНОК, %","prop-overlay-size",c.size??100,'type="number" min="20" max="300" step="10"');
   html+=field("ПРОЗОРІСТЬ, %","prop-opacity",c.opacity??75,'type="number" min="0" max="100" step="5"');
   html+='<div class="field"><label for="prop-overlay-color">КОЛІР ЕФЕКТУ</label><input id="prop-overlay-color" type="color" value="'+h(c.tint||meta?.tint||"#ffffff")+'"></div>';
@@ -190,7 +190,7 @@ function renderInspector(){
  html+=field("ТРИВАЛІСТЬ, СЕК","prop-duration",fmt(c.duration),'type="number" min=".2" step=".1"');
  if(selected.kind==="video"||selected.kind==="audio")html+=field("ПОЧАТОК В ФАЙЛІ, СЕК","prop-trim",fmt(c.trim),'type="number" min="0" step=".1"');
  if(selected.kind==="audio"){
-  html+='<div class="field"><label class="loop-label"><input id="prop-loop" type="checkbox" '+(c.loop?'checked':'')+'> ПОВТОРЮВАТИ МУЗИКУ / LOOP</label></div>';
+  html+='<div class="field"><label class="loop-label"><input id="prop-loop" type="checkbox" '+(c.loop?'checked':'')+'> ПОВТОРЮВАТИ МУЗИКУ</label></div>';
   html+=field("ГУЧНІСТЬ, %","prop-volume",Math.round(c.volume*100),'type="number" min="0" max="200" step="5"');
  }
  if(selected.kind!=="video")html+='<div class="inspector-quick"><button type="button" id="fill-timeline" class="small-btn">↔ НА ВСЮ ДОВЖИНУ</button><button type="button" id="snap-begin" class="small-btn">|◀ НА ПОЧАТОК</button></div>';
@@ -232,7 +232,7 @@ function renderInspector(){
    const end=Math.max(videoEnd(),duration(),8);
    obj.start=0;obj.duration=clamp(end,.2,3600);
    if(selected.kind==="audio"){obj.loop=true;const n=audioNodes.get(obj.id);if(n)n.el.loop=true;}
-   persist();toast("Розтягнуто на всю довжину");
+   persist();toast("Шар розтягнуто на всю тривалість");
   };
   $("snap-begin").onclick=()=>{const obj=getSelected();if(!obj)return;obj.start=0;persist();};
  }
@@ -251,14 +251,14 @@ function redraw(){renderAssets();redrawTimeline();renderInspector();setDimension
 function addTitle(){const obj={id:uid(),text:"ВАШ НОВИЙ КРЕАТИВ",start:now,duration:3.5,animation:"fade",size:8,x:50,y:45,rotation:0};state.titles.push(obj);selected={kind:"title",id:obj.id};persist();}
 function addSticker(id){
  const preset=PTSCreative.getSticker(id);if(!preset)return;
- const text={sale:"−50% OFF",shop:"SHOP NOW ↗",new:"NEW DROP"}[id]||"";
+ const text={sale:"ЗНИЖКА −50%",shop:"КУПИТИ ЗАРАЗ ↗",new:"НОВИНКА"}[id]||"";
  const obj={id:uid(),sticker:id,text,start:now,duration:2.5,animation:"pop",speed:1,x:50,y:35,scale:20,rotation:0,color:"#ffffff"};
  state.stickers.push(obj);selected={kind:"sticker",id:obj.id};persist();toast(preset.name+" додано");
 }
 function addEmoji(emoji,name,animation="bounce"){
  const obj={id:uid(),sticker:"emoji",emoji,text:"",name:name||emoji,start:now,duration:3,animation,speed:1,x:50,y:40,scale:22,rotation:0,color:"#ffffff"};
  state.stickers.push(obj);selected={kind:"sticker",id:obj.id};persist();seek(Math.min(now+.3,duration()));
- toast("Emoji додано: "+emoji);
+ toast("Емодзі додано: "+emoji);
 }
 function addMotion(name){
  const motions={bounce:"❤️",heartbeat:"💓",float:"✨",swing:"💫",spin:"🔄",pulse:"💗",jitter:"⚡",orbit:"🌍",rain:"💧",wave:"〰️",flash:"🌟",slide:"➡️",pop:"🎉",flip:"🃏","bounce-in":"🚀",drift:"🦋",rubber:"🎈",squash:"🫧",tada:"🎉","shake-x":"💥","flip-y":"🪙",rise:"📈",fall:"🍂",breath:"🧘",spiral:"🌀",glitch:"⚡",pendulum:"🔔","wave-float":"🌊"};
@@ -461,7 +461,7 @@ function draw(t){
  if(m){const url=assetUrls.get(m.id);
   if(m.kind==="video"){const el=syncVideo(now,playing);if(el&&el.readyState>=2){try{drawCover(el,w,hh);}catch(e){}}}
   else if(m.kind==="image"&&url){let img=imageCache.get(m.id);if(!img){img=new Image();img.src=url;imageCache.set(m.id,img);img.onload=()=>draw(now);}if(img.complete&&img.naturalWidth)drawCover(img,w,hh);video.pause();}
- }else{video.pause();if(!state.clips.length&&!state.titles.length&&!state.captions.length&&!state.stickers.length&&!state.effects.length){ctx.fillStyle="#f4f4f4";ctx.font="900 "+Math.round(w*.095)+"px Arial";ctx.textAlign="center";ctx.fillText("PTS",w/2,hh/2-20);ctx.fillStyle="#888";ctx.font=Math.round(w*.026)+"px Arial";ctx.fillText("UPLOAD MEDIA TO BEGIN",w/2,hh/2+28);}}
+ }else{video.pause();if(!state.clips.length&&!state.titles.length&&!state.captions.length&&!state.stickers.length&&!state.effects.length){ctx.fillStyle="#f4f4f4";ctx.font="900 "+Math.round(w*.095)+"px Arial";ctx.textAlign="center";ctx.fillText("PTS",w/2,hh/2-20);ctx.fillStyle="#888";ctx.font=Math.round(w*.026)+"px Arial";ctx.fillText("ДОДАЙТЕ МЕДІА ДЛЯ ПОЧАТКУ",w/2,hh/2+28);}}
  ctx.restore();
  PTSCreative.afterFrame(ctx,w,hh,activeEffects,now);
  state.overlays.filter(c=>now>=c.start&&now<c.start+c.duration)
