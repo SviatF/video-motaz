@@ -17,6 +17,8 @@ jobs:
         run: |
           node --check app.js
           node --check creative-tools.js
+          node --check emoji-catalog.js
+          node --check creative-library-v2.js
       - name: Build deploy directory
         run: bash build.sh
       - name: Smoke-check output
@@ -25,6 +27,8 @@ jobs:
           test -s dist/styles.css
           test -s dist/app.js
           test -s dist/creative-tools.js
+          test -s dist/emoji-catalog.js
+          test -s dist/creative-library-v2.js
           test -s dist/_headers
           grep -q 'script src="./app.js"' dist/index.html
           grep -q 'id="screen"' dist/index.html
