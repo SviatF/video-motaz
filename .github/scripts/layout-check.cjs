@@ -6,7 +6,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const root = path.resolve(__dirname, '../../dist');
-const files = {'/':'index.html','/index.html':'index.html','/app.js':'app.js','/creative-tools.js':'creative-tools.js','/emoji-catalog.js':'emoji-catalog.js','/creative-library-v2.js':'creative-library-v2.js','/styles.css':'styles.css'};
+const files = {'/':'index.html','/index.html':'index.html','/app.js':'app.js','/creative-tools.js':'creative-tools.js','/emoji-catalog.js':'emoji-catalog.js','/creative-library-v2.js':'creative-library-v2.js','/fullscreen-overlays.js':'fullscreen-overlays.js','/styles.css':'styles.css'};
 const types = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8'};
 const server = createServer((request,response)=>{
   const pathname = new URL(request.url, 'http://127.0.0.1').pathname;
@@ -110,7 +110,7 @@ const cases=[
         if(await page.locator('.emoji-item').count()<40)issues.push('emoji category filter failed');
         await page.locator('[data-emoji-category="all"]').click();
         const packs=await page.evaluate(()=>({music:window.PTSCreative?.MUSIC?.length,sfx:window.PTSCreative?.SFX?.length,motions:window.PTSCreative?.MOTION_PRESETS?.length}));
-        if(packs.music!==24||packs.sfx!==12||packs.motions!==28)issues.push('creative catalog counts incorrect: '+JSON.stringify(packs));
+        if(packs.music!==36||packs.sfx!==12||packs.motions!==28)issues.push('creative catalog counts incorrect: '+JSON.stringify(packs));
         const count=await page.evaluate(()=>window.PTSEmojis?.count);
         if(count!==3963)issues.push('emoji catalog count incorrect: '+count);
         if(await page.locator('.emoji-item').count()<60)issues.push('emoji grid did not render initial page');
@@ -141,7 +141,41 @@ const cases=[
         await page.locator('[data-effect="flash"]').click();
         if(await page.locator('#fx-track .clip.effect').count()!==1)issues.push('FX not added to timeline');
         if(await page.locator('#prop-intensity').count()!==1)issues.push('FX intensity controls missing');
-        await page.locator('[data-library-tab="music"]').click();
+        // Full-screen overlays: separate lane, live canvas pixel changes, timing, persistence.
+        await page.locator('[data-library-tab="overlays"]').click();
+        if(await page.locator('[data-overlay]').count()!==16)issues.push('full frame overlay catalog must have 16 presets');
+        await page.locator('[data-overlay="snow"]').click();
+        if(await page.locator('#overlay-track .clip.overlay').count()!==1)issues.push('snow overlay missing from dedicated track');
+        if(await page.locator('#prop-density').count()!==1)issues.push('overlay inspector missing intensity');
+        await page.locator('#prop-density').fill('110');
+        await page.locator('#prop-density').dispatchEvent('change');
+        await page.locator('#prop-overlay-speed').fill('2');
+        await page.locator('#prop-overlay-speed').dispatchEvent('change');
+        const snowState=await page.evaluate(()=>JSON.parse(localStorage.getItem('pts-creative-project-v1')).overlays?.[0]);
+        if(snowState?.intensity!==110||snowState?.speed!==2)issues.push('overlay controls not persisted');
+        const overlayPixels=await page.evaluate(()=>{
+          const cv=document.querySelector('#screen');
+          const sample=()=>Array.from(cv.getContext('2d').getImageData(0,0,cv.width,cv.height).data).reduce((sum,n,i)=>sum+(i%4===3?0:n),0);
+          const first=sample(),w=cv.width,h=cv.height;
+          // Do not modify project: draw an overlay directly at two times on a temporary test canvas.
+          const t=document.createElement('canvas');t.width=w;t.height=h;
+          const c=t.getContext('2d');
+          c.fillStyle='#090a0d';c.fillRect(0,0,w,h);
+          const a=Array.from(c.getImageData(0,0,w,h).data).reduce((n,x,i)=>n+(i%4===3?0:x),0);
+          window.PTSOverlays.draw(c,w,h,{overlay:'snow',start:0,duration:8,intensity:100,opacity:90,size:100,speed:1,seed:17},2);
+          const b=Array.from(c.getImageData(0,0,w,h).data).reduce((n,x,i)=>n+(i%4===3?0:x),0);
+          return {a,b,first};
+        });
+        if(!(overlayPixels.b>overlayPixels.a))issues.push('snow overlay did not draw visible pixels: '+JSON.stringify(overlayPixels));
+        await page.locator('#fill-timeline').click();
+        const fullSnow=await page.evaluate(()=>JSON.parse(localStorage.getItem('pts-creative-project-v1')).overlays[0]);
+        if(fullSnow.start!==0||fullSnow.duration<7.9)issues.push('snow overlay cannot fill composition');
+        await page.locator('#asset-search').fill('fire');
+        if(await page.locator('[data-overlay]').count()<2)issues.push('fire overlay search failed');
+        await page.locator('[data-overlay="fire"]').click();
+        if(await page.locator('#overlay-track .clip.overlay').count()!==2)issues.push('fire overlay missing from track');
+        await page.locator('#asset-search').fill('');
+                await page.locator('[data-library-tab="music"]').click();
         await page.locator('[data-music="pulse"]').click();
         try{await page.waitForFunction(()=>document.querySelectorAll('#audio-track .clip').length>0,{timeout:15000});}
         catch(e){issues.push('music was not imported to audio track: '+e.message);}
