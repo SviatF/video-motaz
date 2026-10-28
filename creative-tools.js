@@ -135,7 +135,7 @@ function drawSticker(ctx,w,h,c,t){
  const size=S*.28,white=c.color||'#ffffff',dark='#090909';
  ctx.lineJoin='round';ctx.lineCap='round';
  if(type==='emoji'){
-  ctx.font='Math.round(size*.78)px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
+  ctx.font=Math.round(size*.78)+'px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
   ctx.textAlign='center';ctx.textBaseline='middle';
   ctx.fillText(c.emoji||"❤️",0,0);
   ctx.restore();return;
@@ -188,6 +188,11 @@ function beforeFrame(ctx,w,h,effects,t){
   if(e.effect==='zoom')scale*=1+.2*k*ease(local/Math.max(.2,e.duration));
   if(e.effect==='shake'){const decay=1-ease(local/Math.max(.01,e.duration));dx+=Math.sin(local*76)*w*.014*k*decay;dy+=Math.cos(local*92)*h*.014*k*decay;}
   if(e.effect==='mono')mono=true;
+  if(e.effect==='contrast')ctx.filter='contrast('+(1+.9*k)+') saturate('+(1+.18*k)+')';
+  if(e.effect==='blur')ctx.filter='blur('+(2.3*k)+'px)';
+  if(e.effect==='sepia')ctx.filter='sepia('+(k*.95)+') contrast(1.1)';
+  if(e.effect==='invert')ctx.filter='invert('+(k*.85)+')';
+
  });
  if(scale!==1||dx||dy){ctx.translate(w/2+dx,h/2+dy);ctx.scale(scale,scale);ctx.translate(-w/2,-h/2);}
  if(mono)ctx.filter='grayscale(1) contrast(1.13)';
@@ -210,6 +215,24 @@ function afterFrame(ctx,w,h,effects,t){
   }
   if(e.effect==='letterbox'){
    ctx.fillStyle='#050505';const bar=h*.085*k;ctx.fillRect(0,0,w,bar);ctx.fillRect(0,h-bar,w,bar);
+  }
+
+  if(e.effect==='strobe'){
+   const alpha=Math.sin(local*19)>0?0:clamp(.55*k,0,.72);
+   ctx.fillStyle='rgba(255,255,255,'+alpha+')';ctx.fillRect(0,0,w,h);
+  }
+  if(e.effect==='glow'){
+   const gr=ctx.createRadialGradient(w*.5,h*.45,0,w*.5,h*.45,w*.75);
+   gr.addColorStop(0,'rgba(255,255,255,'+clamp(.16*k,0,.3)+')');
+   gr.addColorStop(1,'rgba(255,255,255,0)');
+   ctx.fillStyle=gr;ctx.fillRect(0,0,w,h);
+  }
+  if(e.effect==='fade-black'){
+   const alpha=clamp((local/Math.max(.1,e.duration))*.95*k,0,.99);
+   ctx.fillStyle='rgba(0,0,0,'+alpha+')';ctx.fillRect(0,0,w,h);
+  }
+  if(e.effect==='cool'){
+   ctx.fillStyle='rgba(48,120,255,'+clamp(.15*k,0,.3)+')';ctx.fillRect(0,0,w,h);
   }
   if(e.effect==='sweep'){
    const progress=local/Math.max(.1,e.duration);
