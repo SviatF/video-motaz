@@ -42,7 +42,7 @@ const cases=[
         return {timeline:box('.timeline'),stage:box('.stage'),transport:box('.transport'),
           body:box('.stage-body'),frame:box('.canvas-frame'),
           library:box('.library'),inspector:box('.properties'),
-          header:box('.topbar'),track:box('.timeline-grid'),
+          header:box('.topbar'),track:box('.timeline-grid'),lastTrack:box('.track-labels>div:last-child'),
           overflowX:document.documentElement.scrollWidth-innerWidth,
           viewportHeight:innerHeight,docHeight:document.documentElement.scrollHeight};
       });
@@ -53,7 +53,8 @@ const cases=[
       if(m.library.bottom>m.timeline.top+2) issues.push('library overlaps timeline');
       if(m.inspector.bottom>m.timeline.top+2) issues.push('inspector overlaps timeline');
       if(m.overflowX>3) issues.push('horizontal page overflow '+m.overflowX);
-      if(m.track.height<110) issues.push('timeline content clipped '+m.track.height);
+      if(m.track.height<174) issues.push('timeline content clipped '+m.track.height);
+      if(m.lastTrack.bottom>m.track.bottom+2) issues.push('last track overlaps timeline footer');
       if(pageErrors.length) issues.push('page errors: '+pageErrors.join(' | '));
       // The core user flow should remain functional after styling changes.
       await page.click('#add-title');
