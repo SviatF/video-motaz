@@ -62,6 +62,13 @@
   <option value="ar">Арабська</option>
   <option value="hi">Гінді</option>
 </select></label>
+<label class="smart-captions-style" for="auto-caption-quality">ЯКІСТЬ РОЗПІЗНАВАННЯ
+<select id="auto-caption-quality">
+ <option value="balanced" selected>ПОКРАЩЕНА · Whisper Base (рекомендовано)</option>
+ <option value="accurate">МАКСИМАЛЬНА · Whisper Small (потрібен WebGPU)</option>
+ <option value="fast">ШВИДКА · Whisper Tiny (менш точна)</option>
+</select></label>
+<p class="asr-quality-note">Для польської: обери «Польська» й за можливості Whisper Small. Великі моделі завантажуються лише при запуску.</p>
 <label class="smart-captions-style" for="auto-caption-style">ВИГЛЯД СУБТИТРІВ
 <select id="auto-caption-style">
   <option value="highlight">Підсвічування вимовленого слова</option>
