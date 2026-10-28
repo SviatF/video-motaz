@@ -321,18 +321,36 @@ const cases=[
       return project.media?.find(m=>m.id===id)?.kind;
     });
     if(sourceKind!=='video')throw Error('Auto captions did not select imported video');
+    // Simulate a 20-second timeline whose final portion has no speech.
+    // The visual region must span 20 s while text remains timed only to speech.
+    await capPage.evaluate(()=>{
+      const project=JSON.parse(localStorage.getItem('pts-creative-project-v1'));
+      project.clips[0].duration=20;project.media[0].duration=20;
+      localStorage.setItem('pts-creative-project-v1',JSON.stringify(project));
+    });
+    await capPage.reload({waitUntil:'load'});
+    if(!(await capPage.locator('#auto-caption-language').count()))throw Error('Language selection is missing');
+    if(await capPage.locator('#auto-caption-language').inputValue()!=='auto')throw Error('Auto language must be default');
+    await capPage.locator('#auto-caption-language').selectOption('pl');
+    const autoOpts=await capPage.evaluate(()=>window.PTSLocalSpeech.modelOptions('auto'));
+    if('language' in autoOpts)throw Error('Auto ASR still forces Ukrainian');
+    const polishOpts=await capPage.evaluate(()=>window.PTSLocalSpeech.modelOptions('pl'));
+    if(polishOpts.language!=='polish')throw Error('Polish ASR selection not passed through');
+
     await capPage.evaluate(()=>{
       const original=window.PTSLocalSpeech.transcribe;
-      window.PTSLocalSpeech.transcribe=async(file,progress)=>{
+      window.PTSLocalSpeech.transcribe=async(file,progress,opts)=>{
+        if(opts?.language!=='pl')throw Error('Polish language was not passed to ASR');
         const raw=await window.PTSLocalSpeech.decodeAudio(file,progress);
         const pcm=raw.samples;
         const rms=Math.sqrt(pcm.reduce((sum,n)=>sum+n*n,0)/Math.max(1,pcm.length));
         if(rms<.005)throw Error('Extracted soundtrack appears silent: '+rms);
         return window.PTSLocalSpeech.chunkCaptions({
-          text:'Привіт світе',
+          text:'To zabieg sezonowy',
           chunks:[
-            {timestamp:[.2,.54],text:' Привіт'},
-            {timestamp:[.54,.95],text:' світе'}
+            {timestamp:[.2,.54],text:' To'},
+            {timestamp:[.54,.95],text:' zabieg.'},
+            {timestamp:[1.13,1.43],text:' sezonowy'}
           ]
         },raw.duration,{maxWords:4});
       };
@@ -344,13 +362,29 @@ const cases=[
       const saved=JSON.parse(localStorage.getItem('pts-creative-project-v1')||'{}');
       return saved.captions||[];
     });
-    if(speech.length!==1||speech[0].words.length!==2||speech[0].text!=='Привіт світе'||speech[0].style!=='highlight'){
+    if(speech.length!==2||speech[0].words.length!==2||speech[0].text!=='To zabieg.'||speech[0].style!=='highlight'){
       throw Error('Video-to-captions word timestamps not saved correctly: '+JSON.stringify(speech));
     }
+    const durationBand=await capPage.$eval('.caption-region',el=>el.getBoundingClientRect().width);
+    if(durationBand<400)throw Error('Auto captions group does not span full 20-second clip: '+durationBand);
+    const longRegion=await capPage.evaluate(()=>JSON.parse(localStorage.getItem('pts-creative-project-v1')).captionRegions?.[0]?.duration);
+    if(longRegion!==20)throw Error('Auto captions region missing full video duration: '+longRegion);
+    if(speech.some(c=>c.start+c.duration>3))throw Error('Subtitles invented speech in silent tail');
+    if(!(await capPage.locator('#smart-progress-title').count()))throw Error('Compact progress display missing');
+    if(await capPage.locator('#smart-progress-title').textContent()!=='СУБТИТРИ СТВОРЕНО')throw Error('Status summary is not compact');
+    if(!(await capPage.locator('#caption-font').count()))throw Error('Typography controls not available');
+    await capPage.locator('#caption-font').selectOption('impact');
+    await capPage.locator('#caption-size').fill('7');
+    await capPage.locator('#caption-size').dispatchEvent('change');
+    await capPage.locator('#caption-animation').selectOption('slide');
+    await capPage.locator('#caption-apply-group').click();
+    const edited=await capPage.evaluate(()=>JSON.parse(localStorage.getItem('pts-creative-project-v1')).captions);
+    if(edited.length!==2||edited.some(c=>c.fontFamily!=='impact'||c.fontSize!==7||c.animation!=='slide'))throw Error('Batch caption typography did not persist: '+JSON.stringify(edited));
     if(capErrors.length)throw Error('Auto-caption browser errors: '+capErrors.join(' | '));
     await capPage.reload({waitUntil:'load'});
-    if(await capPage.locator('#caption-track .clip').count()!==1)throw Error('Automatic subtitles lost after reload');
-    console.log('Local video auto-subtitles smoke PASS: voice extracted, 2 words, timeline saved');
+    if(await capPage.locator('#caption-track .clip').count()!==2)throw Error('Automatic subtitles lost after reload');
+    if(await capPage.locator('.caption-region').count()!==1)throw Error('Full-length caption region lost after reload');
+    console.log('Polish auto-subtitles QA PASS: original soundtrack extracted, full 20s group, two timed captions, typography persisted');
     await capPage.close();
     // End-to-end recording smoke test using an original synthetic 1.3s title.
     // Confirms that high-quality export generates a playable file without
