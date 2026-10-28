@@ -46,7 +46,7 @@ async function importFiles(files){
   const id=uid(),secs=await probe(file,kind);
   try{await putBlob(id,file);}catch(e){toast("Недостатньо локального сховища: "+e.message);continue;}
   assetUrls.set(id,URL.createObjectURL(file));state.media.push({id,name:file.name,kind,duration:secs});
-  if(kind==="audio"){const item={id:uid(),mediaId:id,start:now,duration:secs,trim:0,volume:1};state.audios.push(item);selected={kind:"audio",id:item.id};}
+  if(kind==="audio"){const item={id:uid(),mediaId:id,start:now,duration:secs,trim:0,volume:1,loop:false};state.audios.push(item);selected={kind:"audio",id:item.id};}
   else{const item={id:uid(),mediaId:id,start:videoEnd(),duration:kind==="image"?5:secs,trim:0};state.clips.push(item);selected={kind:"video",id:item.id};}
   count++;
  }
@@ -58,7 +58,7 @@ function renderAssets(){
  el.innerHTML=state.media.map(a=>'<button class="asset" data-add="'+h(a.id)+'"><span class="asset-icon">'+(a.kind==="video"?"▣":a.kind==="image"?"▧":"♫")+'</span><span class="asset-info"><b title="'+h(a.name)+'">'+h(a.name)+'</b><small>'+a.kind.toUpperCase()+' / '+fmt(a.duration)+' SEC</small></span><span class="plus">＋</span></button>').join("");
  el.querySelectorAll("[data-add]").forEach(b=>b.addEventListener("click",()=>{
   const a=getMedia(b.dataset.add);if(!a)return;
-  if(a.kind==="audio"){const item={id:uid(),mediaId:a.id,start:now,duration:a.duration,trim:0,volume:1};state.audios.push(item);selected={kind:"audio",id:item.id};}
+  if(a.kind==="audio"){const item={id:uid(),mediaId:a.id,start:now,duration:a.duration,trim:0,volume:1,loop:false};state.audios.push(item);selected={kind:"audio",id:item.id};}
   else{const item={id:uid(),mediaId:a.id,start:videoEnd(),duration:a.kind==="image"?5:a.duration,trim:0};state.clips.push(item);selected={kind:"video",id:item.id};}
   persist();
  }));
@@ -83,7 +83,7 @@ function timelineMove(e){
  if(Math.abs(e.clientX-d.fromX)<3&&!d.moved)return;
  d.moved=true;
  if(d.mode==="move"){c.start=snapTime(d.start+delta,e.shiftKey);}
- else if(d.mode==="right"){const max=media&&media.kind!=="image"?Math.max(.2,media.duration-(d.trim||0)):3600;c.duration=clamp(snapTime(d.duration+delta,e.shiftKey),startMin,max);}
+ else if(d.mode==="right"){const max=media&&media.kind!=="image"&&!(d.kind==="audio"&&c.loop)?Math.max(.2,media.duration-(d.trim||0)):3600;c.duration=clamp(snapTime(d.duration+delta,e.shiftKey),startMin,max);}
  else if(d.mode==="left"){
   const minDelta=d.kind==="video"&&media&&media.kind!=="image"?-(d.trim||0):-d.start;
   const maxDelta=d.duration-startMin;
@@ -96,7 +96,8 @@ function timelineMove(e){
 function timelineUp(){
  if(!timelineDrag)return;
  const moved=timelineDrag.moved;timelineDrag=null;
- if(moved){suppressClipClickUntil=performance.now()+350;persist();}else{redrawTimeline();renderInspector();}
+ if(moved){suppressClipClickUntil=performance.now()+350;const clip=getSelected();const t=clip?clip.start+Math.min(.3,clip.duration*.5):now;persist();seek(t);}
+ else{redrawTimeline();renderInspector();}
 }
 document.addEventListener("pointermove",timelineMove);
 document.addEventListener("pointerup",timelineUp);
@@ -171,7 +172,11 @@ function renderInspector(){
  if(selected.kind!=="video")html+=field("ПОЧАТОК, СЕК","prop-start",fmt(c.start),'type="number" min="0" step=".1"');
  html+=field("ТРИВАЛІСТЬ, СЕК","prop-duration",fmt(c.duration),'type="number" min=".2" step=".1"');
  if(selected.kind==="video"||selected.kind==="audio")html+=field("ПОЧАТОК В ФАЙЛІ, СЕК","prop-trim",fmt(c.trim),'type="number" min="0" step=".1"');
- if(selected.kind==="audio")html+=field("ГУЧНІСТЬ, %","prop-volume",Math.round(c.volume*100),'type="number" min="0" max="200" step="5"');
+ if(selected.kind==="audio"){
+  html+='<div class="field"><label class="loop-label"><input id="prop-loop" type="checkbox" '+(c.loop?'checked':'')+'> ПОВТОРЮВАТИ МУЗИКУ / LOOP</label></div>';
+  html+=field("ГУЧНІСТЬ, %","prop-volume",Math.round(c.volume*100),'type="number" min="0" max="200" step="5"');
+ }
+ if(selected.kind!=="video")html+='<div class="inspector-quick"><button type="button" id="fill-timeline" class="small-btn">↔ НА ВСЮ ДОВЖИНУ</button><button type="button" id="snap-begin" class="small-btn">|◀ НА ПОЧАТОК</button></div>';
  html+='<button class="small-btn" id="inspector-delete">✕ ВИДАЛИТИ ШАР</button>';node.innerHTML=html;
  if(editableText)inspectorInput("prop-text",(obj,v)=>obj.text=v);
  if(selected.kind==="title"||selected.kind==="sticker"){$("prop-animation").value=c.animation;inspectorInput("prop-animation",(obj,v)=>obj.animation=v);}
@@ -189,13 +194,31 @@ function renderInspector(){
  if(selected.kind!=="video")inspectorInput("prop-start",(obj,v)=>obj.start=Math.max(0,num(v,obj.start)));
  inspectorInput("prop-duration",(obj,v)=>{
   const media=(selected.kind==="video"||selected.kind==="audio")?getMedia(obj.mediaId):null;
-  const max=media?Math.max(.2,media.duration-obj.trim):3600;
+  const max=media&&!(selected.kind==="audio"&&obj.loop)?Math.max(.2,media.duration-obj.trim):3600;
   obj.duration=clamp(num(v,obj.duration),.2,max);
  });
  if(selected.kind==="video"||selected.kind==="audio")inspectorInput("prop-trim",(obj,v)=>{
   const media=getMedia(obj.mediaId);obj.trim=clamp(num(v,obj.trim),0,Math.max(0,(media?.duration||0)-.2));
   obj.duration=Math.min(obj.duration,Math.max(.2,(media?.duration||.2)-obj.trim));
  });
+ if(selected.kind!=="video"){
+  $("fill-timeline").onclick=()=>{
+   const obj=getSelected();if(!obj)return;
+   const end=Math.max(videoEnd(),duration(),8);
+   obj.start=0;obj.duration=clamp(end,.2,3600);
+   if(selected.kind==="audio"){obj.loop=true;const n=audioNodes.get(obj.id);if(n)n.el.loop=true;}
+   persist();toast("Розтягнуто на всю довжину");
+  };
+  $("snap-begin").onclick=()=>{const obj=getSelected();if(!obj)return;obj.start=0;persist();};
+ }
+ if(selected.kind==="audio"){
+  $("prop-loop").onchange=e=>{
+   const obj=getSelected();if(!obj)return;obj.loop=e.target.checked;
+   const n=audioNodes.get(obj.id);if(n)n.el.loop=obj.loop;
+   if(!obj.loop){const media=getMedia(obj.mediaId);obj.duration=Math.min(obj.duration,Math.max(.2,(media?.duration||0)-(obj.trim||0)));}
+   persist();
+  };
+ }
  if(selected.kind==="audio")inspectorInput("prop-volume",(obj,v)=>{obj.volume=clamp(num(v,100)/100,0,2);const n=audioNodes.get(obj.id);if(n)n.gain.gain.value=obj.volume;});
  $("inspector-delete").onclick=removeSelected;
 }
@@ -404,7 +427,7 @@ async function initializeAudio(){
 function getAudioNode(c){
  let n=audioNodes.get(c.id);if(n)return n;
  const url=assetUrls.get(c.mediaId);if(!url||!audioContext)return null;
- const el=new Audio(url);el.preload="auto";const source=audioContext.createMediaElementSource(el),gain=audioContext.createGain();
+ const el=new Audio(url);el.preload="auto";el.loop=!!c.loop;const source=audioContext.createMediaElementSource(el),gain=audioContext.createGain();
  gain.gain.value=c.volume;source.connect(gain);gain.connect(audioContext.destination);gain.connect(mixDestination);n={el,source,gain};audioNodes.set(c.id,n);return n;
 }
 function syncAudio(t,shouldPlay){
@@ -413,7 +436,8 @@ function syncAudio(t,shouldPlay){
  for(const c of state.audios){
   if(t<c.start||t>=c.start+c.duration)continue;active.add(c.id);
   const n=getAudioNode(c);if(!n)continue;
-  const desired=c.trim+(t-c.start);
+  const available=Math.max(.2,(getMedia(c.mediaId)?.duration||0)-c.trim);
+  const desired=c.trim+(c.loop?(t-c.start)%available:(t-c.start));
   n.gain.gain.value=c.volume;
   if(n.el.readyState>0&&Math.abs(n.el.currentTime-desired)>.28){try{n.el.currentTime=desired;}catch(e){}}
   if(shouldPlay&&n.el.paused)n.el.play().catch(()=>{});
