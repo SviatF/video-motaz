@@ -524,11 +524,39 @@ selectionBox.addEventListener("pointerup",finishCanvasDrag);
 selectionBox.addEventListener("pointercancel",finishCanvasDrag);
 selectionBox.addEventListener("lostpointercapture",finishCanvasDrag);
 function drawCaption(x){
- ctx.save();let fontSize=Math.round(canvas.width*.043);const font="700 "+fontSize+"px Arial, sans-serif",lines=breakLines(x.text,canvas.width*.86,font).slice(0,4),lineHeight=fontSize*1.35;
- const top=canvas.height*.84-(lines.length-1)*lineHeight/2,padding=15;
- ctx.fillStyle="rgba(0,0,0,.78)";ctx.fillRect(canvas.width*.055,top-fontSize*.65-padding,canvas.width*.89,lines.length*lineHeight+padding*1.8);
- ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillStyle="#fff";ctx.font=font;
- lines.forEach((line,i)=>ctx.fillText(line,canvas.width/2,top+i*lineHeight));ctx.restore();
+ const progress=clamp((now-x.start)/Math.max(.1,x.duration),0,1),style=x.style||"classic";
+ const w=canvas.width,h=canvas.height;
+ const fontSize=Math.round(w*(style==="bold"?.06:.045)),font=(style==="bold"?"900 ":"800 ")+fontSize+"px Arial, sans-serif";
+ const lines=breakLines(x.text,w*.85,font).slice(0,4),lineHeight=fontSize*1.32;
+ const y=h*.82-(lines.length-1)*lineHeight/2,pad=fontSize*.32;
+ ctx.save();ctx.textAlign="center";ctx.textBaseline="middle";ctx.font=font;
+ if(style==="classic"){
+  ctx.fillStyle="rgba(0,0,0,.78)";
+  ctx.fillRect(w*.055,y-fontSize*.65-pad,w*.89,lines.length*lineHeight+pad*1.8);
+ }
+ if(style==="bold"){
+  ctx.translate(w/2,y);
+  const scale=.95+.05*Math.min(1,progress*7);ctx.scale(scale,scale);ctx.translate(-w/2,-y);
+ }
+ lines.forEach((line,i)=>{
+  const cy=y+i*lineHeight;
+  ctx.shadowColor="#000";ctx.shadowBlur=style==="classic"?4:14;ctx.lineWidth=fontSize*.16;
+  if(style!=="classic"){ctx.strokeStyle="#080808";ctx.strokeText(line,w/2,cy);}
+  ctx.shadowBlur=0;ctx.fillStyle="#fff";ctx.fillText(line,w/2,cy);
+ });
+ if(style==="highlight"){
+  // Approximate progression until per-word timestamps are available.
+  const words=String(x.text||"").trim().split(/\s+/).filter(Boolean);
+  if(words.length&&lines.length===1){
+   const idx=Math.min(words.length-1,Math.floor(progress*words.length));
+   const prior=words.slice(0,idx).join(" "),current=words[idx],text=words.join(" ");
+   const total=ctx.measureText(text).width,start=w/2-total/2;
+   const xStart=start+(prior?ctx.measureText(prior+" ").width:0);
+   const width=ctx.measureText(current).width;
+   ctx.fillStyle="#f3cf69";ctx.fillText(current,xStart+width/2,y);
+  }
+ }
+ ctx.restore();
 }
 function draw(t){
  now=clamp(t,0,duration());const w=canvas.width,hh=canvas.height;ctx.fillStyle="#080809";ctx.fillRect(0,0,w,hh);
