@@ -1,0 +1,120 @@
+/* PTS Creative Library v2 — a dedicated catalog with offline Unicode Emoji 18.0. */
+(function(global){
+"use strict";
+const catalog=global.PTSEmojis,tools=global.PTSCreative;
+const groupLabels={
+ "Smileys & Emotion":"Емоції","People & Body":"Люди та жести",
+ "Animals & Nature":"Тварини","Food & Drink":"Їжа",
+ "Travel & Places":"Подорожі","Activities":"Активності",
+ "Objects":"Предмети","Symbols":"Символи","Flags":"Прапори"};
+const queries={
+ "серце":"heart","сердеч":"heart","любов":"love","кохання":"heart",
+ "вогонь":"fire","вогн":"fire","сміх":"laugh","смайл":"face",
+ "усмішка":"smile","радість":"smile","поцілунок":"kiss","гроші":"money",
+ "долар":"dollar","подарунок":"gift","корона":"crown","зірка":"star",
+ "зіроч":"star","ракета":"rocket","рука":"hand","квіти":"flower",
+ "квітка":"flower","блискавка":"lightning","сум":"sad","сльоз":"cry",
+ "собака":"dog","кіт":"cat","спорт":"sport","авто":"car","машин":"car",
+ "дівчина":"woman","хлопець":"man","прапор":"flag"};
+const featured=["❤️","💖","💕","💗","💘","💝","😍","🥰","😘","🤩","🔥","✨","💫","🎉","🎁","💰","💸","💵","👀","🫶","👍","👏","🚀","⭐","🌟","😎","😂","🥹","🤯","💯","⚡","✅","❣️","🤍","🖤","💜","💙","💚","💛","🧡"];
+const motions=[
+ ["bounce","BOUNCE","❤️"],["heartbeat","HEARTBEAT","💓"],
+ ["float","FLOAT","✨"],["swing","SWING","💫"],["spin","SPIN","🔄"],
+ ["pulse","PULSE","💗"],["jitter","JITTER","⚡"],["orbit","ORBIT","🌍"],
+ ["rain","DROP","💧"],["wave","WIGGLE","〰️"],["flash","BLINK","🌟"],
+ ["slide","SLIDE","➡️"],["pop","POP","🎉"],["flip","FLIP","🃏"],
+ ["bounce-in","BOUNCE IN","🚀"],["drift","DRIFT","🦋"]];
+let audio=null,audioUrl=null;
+function stopAudio(){if(audio){audio.pause();audio.src="";audio=null;}if(audioUrl){URL.revokeObjectURL(audioUrl);audioUrl=null;}}
+const safe=v=>String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const emojiItems=catalog.all;
+const featuredItems=featured.map(v=>emojiItems.find(e=>e.emoji===v)).filter(Boolean);
+const featuredIds=new Set(featuredItems.map(e=>e.id));
+const emojiOrdered=featuredItems.concat(emojiItems.filter(e=>!featuredIds.has(e.id)));
+function makePanel(node,actions){
+ const state={tab:"emoji",category:"all",search:"",limit:96};
+ const tabs=[["emoji","EMOJI"],["motions","АНІМАЦІЇ"],["stickers","СТІКЕРИ"],["effects","FX"],["music","МУЗИКА"]];
+ node.innerHTML='<div class="asset-lib-toolbar">'+
+  '<div class="asset-lib-nav" role="tablist" aria-label="Вкладки бібліотеки">'+
+  tabs.map(t=>'<button type="button" data-library-tab="'+t[0]+'" role="tab" aria-selected="'+(t[0]===state.tab)+'" class="'+(t[0]===state.tab?'active':'')+'">'+t[1]+'</button>').join('')+
+  '</div><label class="asset-lib-search"><span>⌕</span><input id="asset-search" type="search" placeholder="Шукати emoji, ефекти, стікери…" autocomplete="off" aria-label="Пошук креативів"></label></div>'+
+  '<div id="creative-results" class="asset-lib-results"></div>'+
+  '<div class="asset-lib-license">UNICODE EMOJI 18.0 · LOCAL ANIMATIONS · NO PAID APIs</div>';
+ const search=node.querySelector("#asset-search");
+ const results=node.querySelector("#creative-results");
+ function matches(text){
+  const q=state.search.toLowerCase().trim();if(!q)return true;
+  const translation=queries[q]||Object.keys(queries).filter(k=>q.includes(k)).map(k=>queries[k])[0]||q;
+  const words=String(text).toLowerCase();
+  return words.includes(q)||words.includes(translation);
+ }
+ function header(title,number,detail){
+  return '<div class="asset-lib-lead"><div><span class="kicker">'+safe(title)+'</span><b>'+safe(number)+'</b></div><small>'+safe(detail)+'</small></div>';
+ }
+ function redraw(){
+  if(state.tab==="emoji"){
+   const list=emojiOrdered.filter(x=>(state.category==="all"||x.group===state.category)&&matches(x.name+" "+x.emoji+" "+(groupLabels[x.group]||x.group)));
+   const current=list.slice(0,state.limit);
+   results.innerHTML=header("UNICODE 18.0 / EMOJI",list.length.toLocaleString("uk-UA")+" СИМВОЛІВ","Натисни, щоб додати")+
+    '<div class="asset-category-scroll" aria-label="Категорії emoji">'+
+    ['all'].concat(catalog.groups).map(c=>'<button type="button" data-emoji-category="'+safe(c)+'" class="'+(state.category===c?'active':'')+'">'+(c==="all"?"УСІ":groupLabels[c]||c)+'</button>').join('')+
+    '</div><div class="emoji-grid">'+
+    current.map(e=>'<button type="button" class="emoji-item" title="'+safe(e.name)+'" aria-label="'+safe(e.name)+'" data-emoji-id="'+e.id+'">'+e.emoji+'</button>').join('')+'</div>'+
+    (current.length<list.length?'<button type="button" class="asset-more" id="emoji-more">ПОКАЗАТИ ЩЕ ＋ ('+(list.length-current.length)+' залишилось)</button>':'')+
+    (!list.length?'<p class="asset-empty">Нічого не знайдено. Спробуй іншу назву чи категорію.</p>':'');
+   results.querySelectorAll("[data-emoji-id]").forEach(b=>b.onclick=()=>{const e=emojiItems[Number(b.dataset.emojiId)];if(e)actions.addEmoji(e.emoji,e.name);});
+   results.querySelectorAll("[data-emoji-category]").forEach(b=>b.onclick=()=>{state.category=b.dataset.emojiCategory;state.limit=96;redraw();});
+   const more=results.querySelector("#emoji-more");if(more)more.onclick=()=>{const before=state.limit;state.limit+=96;redraw();const next=results.querySelectorAll(".emoji-item")[before];if(next)next.focus({preventScroll:true});};
+   return;
+  }
+  if(state.tab==="motions"){
+   const list=motions.filter(m=>matches(m[0]+" "+m[1]));
+   results.innerHTML=header("MOTION PRESETS / "+motions.length,"АНІМАЦІЇ","Клік = новий анімований шар")+
+    '<p class="motion-hint">Обери рух, а потім зміни emoji, розмір і швидкість в інспекторі.</p>'+
+    '<div class="motion-grid">'+list.map(m=>'<button type="button" class="motion-tile" data-motion="'+m[0]+'"><span class="motion-icon motion-'+m[0]+'">'+m[2]+'</span><b>'+m[1]+'</b><small>ADD LAYER ＋</small></button>').join('')+'</div>';
+   results.querySelectorAll("[data-motion]").forEach(b=>b.onclick=()=>actions.addMotion(b.dataset.motion));
+   return;
+  }
+  if(state.tab==="stickers"){
+   const list=tools.STICKERS.filter(s=>matches(s.name+" "+s.group));
+   results.innerHTML=header("VECTOR / MOTION","СТІКЕРИ · "+list.length,"Додаються на таймлайн")+
+    '<div class="sticker-grid">'+list.map(s=>'<button type="button" class="sticker-tile" data-sticker="'+s.id+'"><span class="sticker-art">'+safe(s.symbol)+'</span><b>'+safe(s.name)+'</b><small>'+safe(s.group)+'</small></button>').join('')+'</div>';
+   results.querySelectorAll("[data-sticker]").forEach(b=>b.onclick=()=>actions.addSticker(b.dataset.sticker));
+   return;
+  }
+  if(state.tab==="effects"){
+   const list=tools.EFFECTS.filter(s=>matches(s.name+" "+s.desc));
+   results.innerHTML=header("MOTION / LOOK","FX · "+list.length,"Редагуй в інспекторі")+
+    '<div class="fx-grid">'+list.map(s=>'<button type="button" class="fx-tile" data-effect="'+s.id+'"><span>'+safe(s.symbol)+'</span><div><b>'+safe(s.name)+'</b><small>'+safe(s.desc)+'</small></div><em>＋</em></button>').join('')+'</div>';
+   results.querySelectorAll("[data-effect]").forEach(b=>b.onclick=()=>actions.addEffect(b.dataset.effect));
+   return;
+  }
+  const list=tools.MUSIC.filter(s=>matches(s.name+" "+s.category+" "+s.bpm));
+  results.innerHTML=header("ORIGINAL SYNTH LOOPS","МУЗИКА · "+list.length,"Без чужих аудіозаписів")+
+   '<div class="fx-grid">'+list.map(s=>'<div class="music-card"><button type="button" class="music-preview" aria-label="Прослухати '+safe(s.name)+'" data-preview="'+s.id+'">▶</button><span class="creative-text"><b>'+safe(s.name)+'</b><small>'+safe(s.category)+' · '+s.bpm+' BPM</small></span><button type="button" class="music-add" data-music="'+s.id+'" aria-label="Додати '+safe(s.name)+'">＋</button></div>').join('')+'</div>'+
+   '<p class="library-fineprint">Усі лупи генеруються у твоєму браузері. Для рекламної кампанії можна завантажити власну музику в «МЕДІА».</p>';
+  results.querySelectorAll("[data-music]").forEach(b=>b.onclick=async()=>{b.disabled=true;b.textContent="…";try{await actions.addMusic(await tools.musicFile(b.dataset.music));}catch(e){actions.error("Помилка музики: "+e.message);}finally{if(b.isConnected){b.disabled=false;b.textContent="＋";}}});
+  results.querySelectorAll("[data-preview]").forEach(b=>b.onclick=async()=>{
+   const id=b.dataset.preview;
+   if(audio&&audio.dataset.trackId===id){stopAudio();b.textContent="▶";return;}
+   stopAudio();results.querySelectorAll("[data-preview]").forEach(x=>x.textContent="▶");
+   b.disabled=true;b.textContent="…";
+   try{const file=await tools.musicFile(id),url=URL.createObjectURL(file);
+    const player=new Audio(url);player.dataset.trackId=id;player.loop=true;player.volume=.55;
+    audio=player;audioUrl=url;await player.play();if(b.isConnected){b.textContent="■";b.disabled=false;}
+   }catch(e){stopAudio();actions.error("Не вдалося програти: "+e.message);if(b.isConnected){b.disabled=false;b.textContent="▶";}}
+  });
+ }
+ function open(tab){state.tab=tab;state.category="all";state.limit=96;stopAudio();
+  node.querySelectorAll("[data-library-tab]").forEach(b=>{const active=b.dataset.libraryTab===tab;b.classList.toggle("active",active);b.setAttribute("aria-selected",String(active));});
+  redraw();
+ }
+ node.querySelectorAll("[data-library-tab]").forEach(b=>b.onclick=()=>open(b.dataset.libraryTab));
+ search.addEventListener("input",()=>{state.search=search.value;state.limit=96;redraw();});
+ redraw();
+ return {show:open,stopPreview:stopAudio};
+}
+tools.makePanel=makePanel;
+tools.stopPreview=function(){stopAudio();};
+tools.MOTION_PRESETS=motions;
+})(window);
