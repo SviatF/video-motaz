@@ -27,6 +27,6 @@ function apply(){
  }
  if(o)(o.PRESETS||[]).forEach(x=>translatePreset("overlay",x));
 }
-global.PTSUk={names,groups,genres,motions,apply,motion:id=>motions[id]||"Анімація",emojiName:emoji=>"Емодзі "+emoji};
+global.PTSUk={names,groups,genres,motions,apply,motion:id=>motions[id]||"Анімація",emojiName:emoji=>global.PTSEmojiNamesUk?.get(emoji)||"Емодзі "+emoji};
 apply();
 })(window);
