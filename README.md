@@ -1,6 +1,18 @@
 # PTS Creative Studio — Video Montage MVP
 
-Безкоштовний онлайн-відеоредактор для реклами на **Cloudflare Pages**. Без npm-пакетів, платних ліцензій, AI API, серверів рендеру або платних SDK.
+Безкоштовний онлайн-відеоредактор для рекламних креативів, який можна розгорнути на **Cloudflare Workers (Static Assets)** або **Cloudflare Pages**. Без платних ліцензій, AI API, серверів рендеру чи платних SDK.
+
+## Cloudflare Workers (як на поточному екрані Create application)
+
+Налаштування для GitHub-репозиторію **SviatF/video-motaz**:
+
+- Project name: **video-motaz**
+- Build command: **bash build.sh**
+- Deploy command: **npx wrangler deploy**
+- Preview command: **npx wrangler preview**
+- Production branch: **main**
+
+У корені є файл **wrangler.json** із `assets.directory = "./dist"` — саме він повідомляє Workers, що після запуску build.sh слід публікувати статичний сайт із папки dist. Після першого деплою Workers Builds відстежуватиме push у main.
 
 ## Cloudflare Pages (GitHub deploy)
 
