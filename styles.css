@@ -560,3 +560,13 @@ input[type="range"]{accent-color:#ececec}
 .resize-knob{right:-7px;bottom:-7px;width:14px;height:14px;border-radius:2px}
 .rotate-knob{top:-28px;right:-15px;width:18px;height:18px;border-radius:50%;font-size:13px;cursor:crosshair;line-height:1}
 .selection-box:hover{border-color:#fff;background:#ffffff12}
+
+/* Inspector shortcuts and music extension */
+.inspector-quick{display:grid;grid-template-columns:1fr;gap:7px;margin:10px 0 17px}
+.inspector-quick .small-btn{display:block;width:100%;font-size:9px;font-weight:850;letter-spacing:.65px;padding:12px 9px;text-align:left}
+.inspector-quick .small-btn:first-child{border-color:#888a91;color:#f5f5f5;background:#292a2d}
+.loop-label{display:flex!important;align-items:center;gap:9px!important;cursor:pointer;margin:12px 0!important;font-size:10px!important;color:#e4e4e6!important}
+.loop-label input[type=checkbox]{width:17px!important;height:17px!important;padding:0!important;flex:0 0 17px;accent-color:#eee}
+.sound-heading{margin-top:25px;padding-top:17px;border-top:1px solid #38393d}
+.clip-label{pointer-events:none}
+@media(max-width:680px){.clip-handle{flex-basis:11px;min-width:11px}.resize-knob{width:19px;height:19px;right:-9px;bottom:-9px}.rotate-knob{width:21px;height:21px;}}
