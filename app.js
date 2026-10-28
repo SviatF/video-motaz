@@ -147,7 +147,7 @@ function renderInspector(){
  if(selected.kind==="title"||selected.kind==="sticker"){
   const choices=selected.kind==="title"
    ?[['fade','Плавна поява'],['slide','Підйом'],['pop','Масштабування'],['typewriter','Друкарська машинка'],['pulse','Пульсація'],['bounce','Bounce'],['none','Без анімації']]
-   :[['pop','Pop In'],['bounce','Bounce'],['heartbeat','Heartbeat'],['bounce-in','Bounce In'],['pulse','Pulse'],['float','Floating'],['spin','Spin'],['slide','Slide In'],['jitter','Jitter'],['orbit','Orbit'],['rain','Drop'],['wave','Wiggle'],['flash','Blink'],['flip','Flip'],['swing','Swing'],['drift','Drift']];
+   :[['pop','Pop In'],['bounce','Bounce'],['heartbeat','Heartbeat'],['bounce-in','Bounce In'],['pulse','Pulse'],['float','Floating'],['spin','Spin'],['slide','Slide In'],['jitter','Jitter'],['orbit','Orbit'],['rain','Drop'],['wave','Wiggle'],['flash','Blink'],['flip','Flip'],['swing','Swing'],['drift','Drift'],['rubber','Rubber'],['squash','Squash'],['tada','Tada'],['shake-x','Shake X'],['flip-y','Flip Y'],['rise','Rise'],['fall','Fall'],['breath','Breathe'],['spiral','Spiral'],['glitch','Glitch'],['pendulum','Pendulum'],['wave-float','Wave Float']];
   html+='<div class="field"><label for="prop-animation">АНІМАЦІЯ</label><select id="prop-animation">'+choices.map(([id,n])=>'<option value="'+id+'">'+n+'</option>').join('')+'</select></div>';
  }
  if(selected.kind==="title"){
@@ -236,7 +236,7 @@ function addEmoji(emoji,name,animation="bounce"){
  toast("Emoji додано: "+emoji);
 }
 function addMotion(name){
- const motions={bounce:"❤️",heartbeat:"💓",float:"✨",swing:"💫",spin:"🔄",pulse:"💗",jitter:"⚡",orbit:"🌍",rain:"💧",wave:"〰️",flash:"🌟",slide:"➡️",pop:"🎉",flip:"🃏","bounce-in":"🚀",drift:"🦋"};
+ const motions={bounce:"❤️",heartbeat:"💓",float:"✨",swing:"💫",spin:"🔄",pulse:"💗",jitter:"⚡",orbit:"🌍",rain:"💧",wave:"〰️",flash:"🌟",slide:"➡️",pop:"🎉",flip:"🃏","bounce-in":"🚀",drift:"🦋",rubber:"🎈",squash:"🫧",tada:"🎉","shake-x":"💥","flip-y":"🪙",rise:"📈",fall:"🍂",breath:"🧘",spiral:"🌀",glitch:"⚡",pendulum:"🔔","wave-float":"🌊"};
  addEmoji(motions[name]||"❤️",name,name);
 }
 function addEffect(id){
