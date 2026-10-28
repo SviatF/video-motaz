@@ -14,7 +14,7 @@ const EXPORT_QUALITY={"720":{label:"HD",bitrate:8000000},"1080":{label:"Full HD"
 let renderShortSide=PREVIEW_SHORT_SIDE;
 let dragClipId = null, toastTimeout = null, loading = false;
 let timelineDrag = null, suppressClipClickUntil = 0, canvasDrag = null;
-let state = {version:1,name:"Рекламний креатив 01",ratio:"9:16",media:[],clips:[],titles:[],captions:[],audios:[],stickers:[],effects:[],overlays:[]};
+let state = {version:1,name:"Рекламний креатив 01",ratio:"9:16",media:[],clips:[],titles:[],captions:[],audios:[],stickers:[],effects:[],overlays:[],beats:[]};
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(36));
 const clamp = (x,a,b) => Math.min(b,Math.max(a,x));
 const num = (v,d=0) => Number.isFinite(Number(v)) ? Number(v) : d;
@@ -61,6 +61,13 @@ async function importFiles(files){
 }
 function renderAssets(){
  const el=$("asset-list");$("asset-count").textContent=String(state.media.length).padStart(2,"0");
+ const source=$("smart-audio-source");
+ if(source){
+  const current=source.value;
+  const eligible=state.media.filter(m=>m.kind==="audio"||m.kind==="video");
+  source.innerHTML=eligible.length?eligible.map(m=>'<option value="'+h(m.id)+'">'+h(m.name)+'</option>').join(""):'<option value="">Спочатку додай аудіофайл</option>';
+  if(eligible.some(m=>m.id===current))source.value=current;
+ }
  if(!state.media.length){el.innerHTML='<div class="empty">Завантаж матеріали, щоб розпочати монтаж.</div>';return;}
  el.innerHTML=state.media.map(a=>'<button class="asset" data-add="'+h(a.id)+'"><span class="asset-icon">'+(a.kind==="video"?"▣":a.kind==="image"?"▧":"♫")+'</span><span class="asset-info"><b title="'+h(a.name)+'">'+h(a.name)+'</b><small>'+({video:"ВІДЕО",image:"ЗОБРАЖЕННЯ",audio:"АУДІО"}[a.kind]||"ФАЙЛ")+' / '+fmt(a.duration)+' С</small></span><span class="plus">＋</span></button>').join("");
  el.querySelectorAll("[data-add]").forEach(b=>b.addEventListener("click",()=>{
@@ -115,6 +122,9 @@ function redrawTimeline(){
  $("ruler").innerHTML="";
  for(let t=0;t<=Math.ceil(width/pixels);t+=2){const tick=document.createElement("span");tick.className="tick";tick.style.left=t*pixels+"px";tick.textContent=timecode(t).slice(0,5);$("ruler").appendChild(tick);}
  Object.values(trackMap).forEach(id=>$(id).innerHTML="");
+ const beats=$("beat-markers");if(beats){
+  beats.innerHTML=(state.beats||[]).slice(0,500).map(t=>'<span class="beat-marker" title="Удар · '+fmt(t)+' с" style="left:'+t*pixels+'px"></span>').join("");
+ }
  const groups={video:state.clips,title:state.titles,sticker:state.stickers,effect:state.effects,overlay:state.overlays,caption:state.captions,audio:state.audios};
  Object.keys(groups).forEach(kind=>{
   const list=groups[kind],track=$(trackMap[kind]);
@@ -217,6 +227,11 @@ function renderInspector(){
   html+=field("ПРОЗОРІСТЬ, %","prop-opacity",c.opacity??75,'type="number" min="0" max="100" step="5"');
   html+='<div class="field"><label for="prop-overlay-color">КОЛІР ЕФЕКТУ</label><input id="prop-overlay-color" type="color" value="'+h(c.tint||meta?.tint||"#ffffff")+'"></div>';
  }
+ if(selected.kind==="caption"){
+  html+='<div class="field"><label for="caption-style">СТИЛЬ СУБТИТРІВ</label><select id="caption-style">'+
+   '<option value="classic">Класичні</option><option value="bold">Великі кінетичні</option>'+
+   '<option value="highlight">Підсвічування слів</option></select></div>';
+ }
  if(selected.kind==="effect"){
   html+='<div class="mini">'+h(PTSCreative.getEffect(c.effect)?.desc||"Ефект кадру")+'</div>';
   html+=field("ІНТЕНСИВНІСТЬ, %","prop-intensity",c.intensity,'type="number" min="0" max="150" step="5"');
@@ -266,6 +281,10 @@ function renderInspector(){
   inspectorInput("prop-overlay-size",(obj,v)=>obj.size=clamp(num(v,obj.size),20,300));
   inspectorInput("prop-opacity",(obj,v)=>obj.opacity=clamp(num(v,obj.opacity),0,100));
   inspectorInput("prop-overlay-color",(obj,v)=>obj.tint=v);
+ }
+ if(selected.kind==="caption"){
+  $("caption-style").value=c.style||"classic";
+  inspectorInput("caption-style",(obj,v)=>obj.style=v);
  }
  if(selected.kind==="effect")inspectorInput("prop-intensity",(obj,v)=>obj.intensity=clamp(num(v,obj.intensity),0,150));
  if(selected.kind!=="video")inspectorInput("prop-start",(obj,v)=>obj.start=Math.max(0,num(v,obj.start)));
@@ -704,7 +723,7 @@ async function boot(){
  try{
   db=await createDB();
   const old=JSON.parse(localStorage.getItem(PROJECT_KEY)||"null");
-  if(old&&old.version===1){state={...state,...old,stickers:Array.isArray(old.stickers)?old.stickers:[],effects:Array.isArray(old.effects)?old.effects:[],overlays:Array.isArray(old.overlays)?old.overlays:[]};}
+  if(old&&old.version===1){state={...state,...old,stickers:Array.isArray(old.stickers)?old.stickers:[],effects:Array.isArray(old.effects)?old.effects:[],overlays:Array.isArray(old.overlays)?old.overlays:[],beats:Array.isArray(old.beats)?old.beats:[]};}
   const all=await allBlobs();for(const a of all)assetUrls.set(a.id,URL.createObjectURL(a.file));
   $("project-name").value=state.name;$("ratio").value=state.ratio;
   redraw();seek(0);
