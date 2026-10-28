@@ -409,3 +409,109 @@ input[type="range"]{accent-color:#ececec}
  .creative-tabs{padding-left:16px;padding-right:16px}
  .creative-list{padding-left:16px;padding-right:16px}
 }
+
+/* === PTS CREATIVE LIBRARY V2 ===
+   Independent workspace instead of a bottom sidebar widget. */
+.library{display:flex;flex-direction:column;overflow:hidden;position:relative}
+.workspace-nav{flex:0 0 51px;display:grid;grid-template-columns:1fr 1.35fr;gap:5px;padding:8px 11px;border-bottom:1px solid #36373c;background:#101113}
+.workspace-nav button{min-width:0;background:transparent;color:#898b92;border:1px solid transparent;border-radius:4px;font-size:10px;letter-spacing:.75px;font-weight:850;white-space:nowrap;padding:0 5px}
+.workspace-nav button.active{background:#ebebec;color:#111114;border-color:#eee}
+.workspace-nav button:not(.active):hover{color:#fff;background:#25262a}
+.library-view{flex:1 1 auto;min-height:0;width:100%;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:#4f5056 transparent;overscroll-behavior:contain}
+.library-view[hidden]{display:none!important}
+#media-view{padding-bottom:18px}
+#creative-view{background:linear-gradient(170deg,#17181b,#111214 25%,#0d0e10 90%)}
+.creative-hero{padding:23px 17px 14px;border-bottom:1px solid #323338}
+.creative-hero .kicker{color:#83858d}
+.creative-hero-line{display:flex;align-items:center;justify-content:space-between;gap:9px;margin-top:9px}
+.creative-hero-line h2{margin:0;font-size:21px;letter-spacing:-1px;line-height:1;font-weight:900}
+.creative-hero-line h2 span{color:#898a92}
+.creative-hero-line button{width:31px;height:31px;background:#292a2e;border:1px solid #54555a;border-radius:5px;color:#eaeaea;font-size:17px;line-height:1}
+.creative-hero p{margin:12px 0 13px;color:#a5a6ab;font-size:10px;letter-spacing:.1px;line-height:1.5}
+.creative-hero-count{display:flex;align-items:center;gap:6px;border-top:1px solid #292a2e;padding-top:12px;color:#8f9096;font-size:9px;font-weight:750;letter-spacing:1px}
+.creative-hero-count strong{font-size:15px;color:#fff}
+.creative-hero-count span{color:#666971;font-size:8px;letter-spacing:.2px}
+.asset-lib-toolbar{padding:14px 12px 10px;background:#131417;position:sticky;top:0;z-index:4;border-bottom:1px solid #36373b}
+.asset-lib-nav{display:flex;flex-wrap:nowrap;gap:3px;overflow-x:auto;scrollbar-width:none;padding-bottom:10px}
+.asset-lib-nav button{flex:0 0 auto;background:#1f2023;color:#9b9da3;border:1px solid #36373b;border-radius:4px;padding:8px 7px;white-space:nowrap;letter-spacing:.6px;font-size:9px;font-weight:800}
+.asset-lib-nav button.active{background:#eeeef0;color:#111216;border-color:#fff}
+.asset-lib-search{height:39px;display:flex;align-items:center;gap:8px;padding:0 11px;border-radius:5px;border:1px solid #46474c;background:#202125;color:#c5c6ca}
+.asset-lib-search span{font-size:20px;line-height:1}
+.asset-lib-search input{background:transparent;border:0;outline:0;min-width:0;width:100%;font-size:11px;color:#f6f6f7}
+.asset-lib-search input::placeholder{color:#85878d}
+.asset-lib-results{padding:15px 12px 19px}
+.asset-lib-lead{display:flex;flex-direction:column;gap:5px;padding:0 3px 13px}
+.asset-lib-lead div{display:flex;flex-direction:column;gap:5px}
+.asset-lib-lead b{font-size:14px;font-weight:900;letter-spacing:-.3px}
+.asset-lib-lead small{font-size:10px;color:#9a9ba2}
+.asset-category-scroll{display:flex;gap:5px;overflow-x:auto;scrollbar-width:thin;scrollbar-color:#4b4c50 transparent;padding:0 0 12px;margin-bottom:8px}
+.asset-category-scroll button{flex-shrink:0;background:#25262a;color:#b3b4b9;border:1px solid #44454b;border-radius:30px;padding:7px 10px;font-size:10px;font-weight:750;white-space:nowrap}
+.asset-category-scroll button.active{background:#ededed;color:#111;border-color:#eee}
+.emoji-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
+.emoji-item{aspect-ratio:1;min-width:0;display:grid;place-items:center;background:#222328;border:1px solid #36373c;border-radius:6px;color:white;font-size:26px;line-height:1;padding:0;transition:background .14s,transform .14s,border-color .14s;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
+.emoji-item:hover{background:#3c3d43;border-color:#b5b6bd;transform:translateY(-2px)}
+.emoji-item:active{transform:scale(.92)}
+.asset-more{display:block;margin:17px 0 0;width:100%;min-height:37px;border:1px solid #74757b;border-radius:4px;color:#fff;background:#232429;font-weight:800;letter-spacing:.55px;font-size:10px}
+.asset-more:hover{background:#303137}
+.asset-lib-license{font-size:8px;letter-spacing:1px;color:#686a72;text-align:center;padding:12px 8px 20px;border-top:1px solid #313238}
+.asset-empty{color:#a2a3a7;text-align:center;font-size:11px;line-height:1.7;padding:18px 6px}
+.motion-hint{font-size:10px;line-height:1.6;color:#a0a1a7;margin:0 3px 13px}
+.motion-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.motion-tile,.sticker-tile{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0;min-height:112px;gap:8px;padding:12px 6px;background:radial-gradient(circle at 50% 18%,#35363b,#202125 65%);color:#fff;border:1px solid #484a50;border-radius:5px;overflow:hidden}
+.motion-tile:hover,.sticker-tile:hover{border-color:#d7d8dd;background:#303136}
+.motion-icon{height:42px;font-size:30px;display:grid;place-items:center;will-change:transform}
+.motion-tile b,.sticker-tile b{font-size:10px;letter-spacing:.6px;font-weight:900;text-align:center;max-width:100%}
+.motion-tile small,.sticker-tile small{font-size:8px;color:#a5a6ad;letter-spacing:.7px}
+.sticker-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.sticker-art{height:46px;min-width:60px;display:grid;place-items:center;font-size:27px;font-weight:900;letter-spacing:-1px;text-shadow:0 4px 18px #fff3}
+.fx-grid{display:flex;flex-direction:column;gap:7px}
+.fx-tile{display:flex;align-items:center;gap:10px;padding:11px 9px;min-height:59px;border:1px solid #424348;border-radius:5px;background:linear-gradient(105deg,#2a2b2f,#18191c);color:white;text-align:left}
+.fx-tile:hover{border-color:#b0b1b6;background:#303136}
+.fx-tile>span{flex:0 0 40px;display:grid;place-items:center;height:39px;background:#38393e;border:1px solid #515258;border-radius:4px;font-size:24px}
+.fx-tile>div{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.fx-tile b{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fx-tile small{font-size:9px;color:#9fa0a7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fx-tile em{font-style:normal;font-size:18px;color:#eee}
+#creative-view .music-card{min-height:62px}
+#creative-view .music-card .creative-text{gap:5px}
+.library.library-expanded{
+ position:fixed!important;
+ z-index:15;
+ top:68px;
+ left:0;
+ bottom:var(--studio-timeline);
+ width:min(640px,60vw)!important;
+ height:auto!important;
+ max-height:none!important;
+ box-shadow:18px 0 60px #000c;
+ border-right:1px solid #77797e;
+}
+.library-expanded #creative-view .emoji-grid{grid-template-columns:repeat(9,minmax(0,1fr))}
+.library-expanded #creative-view .sticker-grid,.library-expanded #creative-view .motion-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+.library-expanded #creative-view .asset-lib-nav button{padding:11px 13px}
+.library-expanded #creative-view .emoji-item{font-size:31px}
+@keyframes pts-heartbeat{0%,100%{transform:scale(1)}15%,35%{transform:scale(1.24)}25%,45%{transform:scale(.96)}}
+@keyframes pts-jump{0%,100%{transform:translateY(0) scale(1,.92)}45%{transform:translateY(-15px) scale(.92,1.12)}}
+@keyframes pts-swing{0%,100%{transform:rotate(-13deg)}50%{transform:rotate(13deg)}}
+@keyframes pts-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+@keyframes pts-spin{to{transform:rotate(360deg)}}
+@keyframes pts-jitter{0%,100%{transform:translate(0)}25%{transform:translate(3px,-2px)}50%{transform:translate(-3px,2px)}75%{transform:translate(1px,-3px)}}
+@keyframes pts-orbit{0%{transform:translate(0,8px)}25%{transform:translate(7px,0)}50%{transform:translate(0,-7px)}75%{transform:translate(-7px,0)}100%{transform:translate(0,8px)}}
+.motion-bounce,.motion-bounce-in{animation:pts-jump 1.1s ease-in-out infinite}
+.motion-heartbeat,.motion-pulse,.motion-pop{animation:pts-heartbeat 1s ease-in-out infinite}
+.motion-swing,.motion-wave,.motion-flip{animation:pts-swing 1.2s ease-in-out infinite}
+.motion-spin{animation:pts-spin 2s linear infinite}
+.motion-float,.motion-drift,.motion-rain{animation:pts-float 1.5s ease-in-out infinite}
+.motion-jitter,.motion-flash{animation:pts-jitter .35s linear infinite}
+.motion-orbit{animation:pts-orbit 1.5s linear infinite}
+.motion-slide{animation:pts-float .85s ease-in-out infinite}
+@media (max-width:1000px){.library.library-expanded{width:min(560px,78vw)!important;}}
+@media (max-width:680px){
+ .library{min-height:0;max-height:410px}
+ .library.library-expanded{top:0;bottom:0;width:100vw!important;height:100dvh!important;max-height:none!important}
+ .library-expanded #creative-view .emoji-grid{grid-template-columns:repeat(6,minmax(0,1fr))}
+ .library-expanded #creative-view .motion-grid,.library-expanded #creative-view .sticker-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .emoji-grid{grid-template-columns:repeat(7,minmax(0,1fr))}
+ .asset-lib-toolbar{top:0}
+}
+@media (prefers-reduced-motion:reduce){.motion-icon,.emoji-item{animation:none!important;transition:none!important}}
