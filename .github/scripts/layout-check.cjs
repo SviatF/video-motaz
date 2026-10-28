@@ -289,6 +289,69 @@ const cases=[
       await page.close();
     }
 
+    // Automatic captions from a real local video: synthesize a short video
+    // with a non-silent soundtrack, import it through the UI, extract its
+    // audio locally, and mock ONLY the Whisper inference (network-heavy).
+    const capPage=await browser.newPage({viewport:{width:1280,height:800}});
+    const capErrors=[];capPage.on('pageerror',e=>capErrors.push(e.message));
+    await capPage.goto(address,{waitUntil:'load'});
+    const sample=await capPage.evaluate(async()=>{
+      const canvas=document.createElement('canvas');canvas.width=320;canvas.height=240;
+      const g=canvas.getContext('2d');g.fillStyle='#20252d';g.fillRect(0,0,320,240);
+      const stream=canvas.captureStream(15),ac=new AudioContext(),osc=ac.createOscillator();
+      const gain=ac.createGain(),out=ac.createMediaStreamDestination();
+      osc.frequency.value=320;gain.gain.value=.14;
+      osc.connect(gain);gain.connect(out);osc.start();await ac.resume();
+      const tracks=[...stream.getVideoTracks(),...out.stream.getAudioTracks()];
+      const full=new MediaStream(tracks);
+      const mime=['video/webm;codecs=vp8,opus','video/webm'].find(x=>MediaRecorder.isTypeSupported(x));
+      const rec=new MediaRecorder(full,{mimeType:mime}),data=[];
+      rec.ondataavailable=e=>{if(e.data?.size)data.push(e.data);};
+      const done=new Promise(resolve=>rec.onstop=resolve);
+      rec.start(200);await new Promise(r=>setTimeout(r,1600));rec.stop();await done;
+      osc.stop();full.getTracks().forEach(x=>x.stop());await ac.close();
+      const buffer=await new Blob(data,{type:mime}).arrayBuffer();
+      return Array.from(new Uint8Array(buffer));
+    });
+    await capPage.locator('#file-input').setInputFiles({name:'voice-test.webm',mimeType:'video/webm',buffer:Buffer.from(sample)});
+    await capPage.waitForFunction(()=>document.querySelectorAll('#video-track .clip').length>0,{timeout:12000});
+    const sourceKind=await capPage.evaluate(()=>{
+      const id=document.querySelector('#smart-audio-source')?.value;
+      const project=JSON.parse(localStorage.getItem('pts-creative-project-v1')||'{}');
+      return project.media?.find(m=>m.id===id)?.kind;
+    });
+    if(sourceKind!=='video')throw Error('Auto captions did not select imported video');
+    await capPage.evaluate(()=>{
+      const original=window.PTSLocalSpeech.transcribe;
+      window.PTSLocalSpeech.transcribe=async(file,progress)=>{
+        const raw=await window.PTSLocalSpeech.decodeAudio(file,progress);
+        const pcm=raw.samples;
+        const rms=Math.sqrt(pcm.reduce((sum,n)=>sum+n*n,0)/Math.max(1,pcm.length));
+        if(rms<.005)throw Error('Extracted soundtrack appears silent: '+rms);
+        return window.PTSLocalSpeech.chunkCaptions({
+          text:'Привіт світе',
+          chunks:[
+            {timestamp:[.2,.54],text:' Привіт'},
+            {timestamp:[.54,.95],text:' світе'}
+          ]
+        },raw.duration,{maxWords:4});
+      };
+    });
+    await capPage.locator('#auto-caption-style').selectOption('highlight');
+    await capPage.locator('#generate-captions').click();
+    await capPage.waitForFunction(()=>document.querySelectorAll('#caption-track .clip').length>0,{timeout:20000});
+    const speech=await capPage.evaluate(()=>{
+      const saved=JSON.parse(localStorage.getItem('pts-creative-project-v1')||'{}');
+      return saved.captions||[];
+    });
+    if(speech.length!==1||speech[0].words.length!==2||speech[0].text!=='Привіт світе'||speech[0].style!=='highlight'){
+      throw Error('Video-to-captions word timestamps not saved correctly: '+JSON.stringify(speech));
+    }
+    if(capErrors.length)throw Error('Auto-caption browser errors: '+capErrors.join(' | '));
+    await capPage.reload({waitUntil:'load'});
+    if(await capPage.locator('#caption-track .clip').count()!==1)throw Error('Automatic subtitles lost after reload');
+    console.log('Local video auto-subtitles smoke PASS: voice extracted, 2 words, timeline saved');
+    await capPage.close();
     // End-to-end recording smoke test using an original synthetic 1.3s title.
     // Confirms that high-quality export generates a playable file without
     // uploading media or relying on paid transcoding services.
