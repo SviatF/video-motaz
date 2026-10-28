@@ -31,7 +31,9 @@ async function load(progress,{quality="balanced"}={}){
     progress?.("Завантаження "+choice.label+": "+Math.round(evt.progress)+"%");
    }
   };
-  const gpuOptions={device:"webgpu",dtype:{encoder_model:"fp16",decoder_model_merged:"q4"},progress_callback};
+  // WebGPU fp16 encoder can corrupt Whisper's acoustic features and create
+  // repeating gibberish. Use fp32 encoder for recognition reliability.
+  const gpuOptions={device:"webgpu",dtype:{encoder_model:"fp32",decoder_model_merged:"q4"},progress_callback};
   const cpuOptions={device:"wasm",dtype:{encoder_model:"fp32",decoder_model_merged:"q8"},progress_callback};
   let recognizer;
   if(webgpu){
@@ -114,7 +116,7 @@ function chunkCaptions(data,duration,{maxWords=4,maxDuration=2.8}={}){
 const LANGUAGES={auto:null,uk:"ukrainian",pl:"polish",en:"english",de:"german",es:"spanish",fr:"french",it:"italian",pt:"portuguese",cs:"czech",sk:"slovak",ru:"russian",ro:"romanian",tr:"turkish",nl:"dutch",hu:"hungarian",ar:"arabic",hi:"hindi"};
 function modelOptions(language,word=true){
  const opts={task:"transcribe",return_timestamps:word?"word":true,
-  do_sample:false,temperature:0};
+  do_sample:false,temperature:0,repetition_penalty:1.13,no_repeat_ngram_size:3};
  if(language&&LANGUAGES[language])opts.language=LANGUAGES[language];
  return opts;
 }
