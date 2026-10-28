@@ -50,11 +50,572 @@ const EFFECTS=[
  {id:"fade-black",name:"Fade to Black",desc:"Затемнення",symbol:"◕",duration:2},
  {id:"cool",name:"Cool Tone",desc:"Холодна експозиція",symbol:"❄",duration:4}];
 const MUSIC=[
- {id:"pulse",name:"CINEMATIC PULSE",category:"Action / Ads",bpm:120,key:52,melody:[0,3,7,10],chord:[0,3,7],beat:true},
- {id:"luxury",name:"LUXURY MINIMAL",category:"Beauty / Fashion",bpm:92,key:57,melody:[0,7,5,3],chord:[0,4,7],beat:false},
- {id:"upbeat",name:"UPBEAT PROMO",category:"Reels / Retail",bpm:132,key:60,melody:[0,4,7,12],chord:[0,4,7],beat:true},
- {id:"tension",name:"DARK TENSION",category:"Teaser / Hook",bpm:104,key:48,melody:[0,1,7,6],chord:[0,1,7],beat:true},
- {id:"bright",name:"BRAND MOTION",category:"Corporate / B2B",bpm:112,key:55,melody:[0,4,9,7],chord:[0,4,7],beat:true}
+ {
+  "id": "pulse",
+  "name": "CINEMATIC PULSE",
+  "category": "Action / Ads",
+  "bpm": 120,
+  "key": 52,
+  "melody": [
+   0,
+   3,
+   7,
+   10
+  ],
+  "chord": [
+   0,
+   3,
+   7
+  ],
+  "style": "cinema",
+  "beat": true
+ },
+ {
+  "id": "luxury",
+  "name": "LUXURY MINIMAL",
+  "category": "Beauty / Fashion",
+  "bpm": 92,
+  "key": 57,
+  "melody": [
+   0,
+   7,
+   5,
+   3
+  ],
+  "chord": [
+   0,
+   4,
+   7
+  ],
+  "style": "ambient",
+  "beat": false
+ },
+ {
+  "id": "upbeat",
+  "name": "UPBEAT PROMO",
+  "category": "Reels / Retail",
+  "bpm": 132,
+  "key": 60,
+  "melody": [
+   0,
+   4,
+   7,
+   12
+  ],
+  "chord": [
+   0,
+   4,
+   7
+  ],
+  "style": "dance",
+  "beat": true
+ },
+ {
+  "id": "tension",
+  "name": "DARK TENSION",
+  "category": "Teaser / Hook",
+  "bpm": 104,
+  "key": 48,
+  "melody": [
+   0,
+   1,
+   7,
+   6
+  ],
+  "chord": [
+   0,
+   1,
+   7
+  ],
+  "style": "cinema",
+  "beat": true
+ },
+ {
+  "id": "bright",
+  "name": "BRAND MOTION",
+  "category": "Corporate / B2B",
+  "bpm": 112,
+  "key": 55,
+  "melody": [
+   0,
+   4,
+   9,
+   7
+  ],
+  "chord": [
+   0,
+   4,
+   7
+  ],
+  "style": "minimal",
+  "beat": true
+ },
+ {
+  "id": "neon",
+  "name": "NEON RUSH",
+  "category": "Electro / Nightlife",
+  "bpm": 128,
+  "key": 49,
+  "melody": [
+   0,
+   5,
+   7,
+   10
+  ],
+  "chord": [
+   0,
+   3,
+   7
+  ],
+  "style": "electro",
+  "beat": true
+ },
+ {
+  "id": "phonk",
+  "name": "NIGHT DRIVE PHONK",
+  "category": "Phonk / Cars",
+  "bpm": 148,
+  "key": 46,
+  "melody": [
+   0,
+   3,
+   6,
+   10
+  ],
+  "chord": [
+   0,
+   3,
+   6
+  ],
+  "style": "phonk",
+  "beat": true
+ },
+ {
+  "id": "house",
+  "name": "DEEP HOUSE FLOW",
+  "category": "House / Lifestyle",
+  "bpm": 124,
+  "key": 53,
+  "melody": [
+   0,
+   7,
+   10,
+   5
+  ],
+  "chord": [
+   0,
+   3,
+   7
+  ],
+  "style": "house",
+  "beat": true
+ },
+ {
+  "id": "afro",
+  "name": "AFRO SUNSET",
+  "category": "Afro / Travel",
+  "bpm": 108,
+  "key": 55,
+  "melody": [
+   0,
+   2,
+   7,
+   9
+  ],
+  "chord": [
+   0,
+   4,
+   7
+  ],
+  "style": "afro",
+  "beat": true
+ },
+ {
+  "id": "hyper",
+  "name": "HYPER POP SPARK",
+  "category": "Hyperpop / Fashion",
+  "bpm": 158,
+  "key": 61,
+  "melody": [
+   0,
+   4,
+   12,
+   7
+  ],
+  "chord": [
+   0,
+   4,
+   7
+  ],
+  "style": "electro",
+  "beat": true
+ },
+ {
+  "id": "future",
+  "name": "FUTURE BASS LIFT",
+  "category": "Future Bass / Ads",
+  "bpm": 140,
+  "key": 50,
+  "melody": [
+   0,
+   5,
+   9,
+   12
+  ],
+  "chord": [
+   0,
+   4,
+   9
+  ],
+  "style": "future",
+  "beat": true
+ },
+ {
+  "id": "drill",
+  "name": "URBAN DARK BEAT",
+  "category": "Urban / Street",
+  "bpm": 142,
+  "key": 45,
+  "melody": [
+   0,
+   3,
+   5,
+   7
+  ],
+  "chord": [
+   0,
+   3,
+   7
+  ],
+  "style": "trap",
+  "beat": true
+ },
+ {
+  "id": "beauty",
+  "name": "GLOSSY BEAUTY",
+  "category": "Beauty / Minimal",
+  "bpm": 86,
+  "key": 58,
+  "melody": [
+   0,
+   4,
+   7,
+   11
+  ],
+  "chord": [
+   0,
+   4,
+   7
+  ],
+  "style": "ambient",
+  "beat": false
+ },
+ {
+  "id": "runway",
+  "name": "RUNWAY ELECTRO",
+  "category": "Fashion / Runway",
+  "bpm": 126,
+  "key": 54,
+  "melody": [
+   0,
+   5,
+   8,
+   12
+  ],
+  "chord": [
+   0,
+   3,
+   8
+  ],
+  "style": "house",
+  "beat": true
+ },
+ {
+  "id": "tropical",
+  "name": "TROPICAL CAMPAIGN",
+  "category": "Summer / Reels",
+  "bpm": 114,
+  "key": 62,
+  "melody": [
+   0,
+   4,
+   9,
+   7
+  ],
+  "chord": [
+   0,
+   4,
+   9
+  ],
+  "style": "afro",
+  "beat": true
+ },
+ {
+  "id": "glitch",
+  "name": "DIGITAL GLITCH",
+  "category": "Tech / SaaS",
+  "bpm": 135,
+  "key": 51,
+  "melody": [
+   0,
+   1,
+   6,
+   12
+  ],
+  "chord": [
+   0,
+   6,
+   10
+  ],
+  "style": "electro",
+  "beat": true
+ },
+ {
+  "id": "sports",
+  "name": "SPORTS IMPACT",
+  "category": "Sports / Fitness",
+  "bpm": 136,
+  "key": 47,
+  "melody": [
+   0,
+   7,
+   10,
+   12
+  ],
+  "chord": [
+   0,
+   3,
+   7
+  ],
+  "style": "cinema",
+  "beat": true
+ },
+ {
+  "id": "soft",
+  "name": "SOFT LOUNGE",
+  "category": "Wellness / Spa",
+  "bpm": 78,
+  "key": 59,
+  "melody": [
+   0,
+   4,
+   7,
+   12
+  ],
+  "chord": [
+   0,
+   4,
+   9
+  ],
+  "style": "ambient",
+  "beat": false
+ },
+ {
+  "id": "retail",
+  "name": "FLASH SALE DRIVE",
+  "category": "Retail / Offers",
+  "bpm": 142,
+  "key": 56,
+  "melody": [
+   0,
+   3,
+   7,
+   12
+  ],
+  "chord": [
+   0,
+   3,
+   7
+  ],
+  "style": "dance",
+  "beat": true
+ },
+ {
+  "id": "retro",
+  "name": "RETRO SYNTHWAVE",
+  "category": "Retro / Auto",
+  "bpm": 110,
+  "key": 50,
+  "melody": [
+   0,
+   3,
+   7,
+   10
+  ],
+  "chord": [
+   0,
+   3,
+   7
+  ],
+  "style": "electro",
+  "beat": true
+ },
+ {
+  "id": "fashion",
+  "name": "FASHION BOUNCE",
+  "category": "Fashion / Social",
+  "bpm": 116,
+  "key": 54,
+  "melody": [
+   0,
+   4,
+   7,
+   11
+  ],
+  "chord": [
+   0,
+   4,
+   7
+  ],
+  "style": "house",
+  "beat": true
+ },
+ {
+  "id": "chill",
+  "name": "CHILL BEATS",
+  "category": "Coffee / Lifestyle",
+  "bpm": 90,
+  "key": 57,
+  "melody": [
+   0,
+   4,
+   9,
+   7
+  ],
+  "chord": [
+   0,
+   4,
+   9
+  ],
+  "style": "minimal",
+  "beat": true
+ },
+ {
+  "id": "uplift",
+  "name": "CINEMATIC UPLIFT",
+  "category": "Brand / Motivation",
+  "bpm": 118,
+  "key": 60,
+  "melody": [
+   0,
+   5,
+   9,
+   12
+  ],
+  "chord": [
+   0,
+   4,
+   9
+  ],
+  "style": "cinema",
+  "beat": true
+ },
+ {
+  "id": "club",
+  "name": "CLUB ENERGY",
+  "category": "Party / Events",
+  "bpm": 130,
+  "key": 48,
+  "melody": [
+   0,
+   3,
+   7,
+   12
+  ],
+  "chord": [
+   0,
+   3,
+   7
+  ],
+  "style": "dance",
+  "beat": true
+ }
+];
+const SFX=[
+ {
+  "id": "whoosh",
+  "name": "Motion Whoosh",
+  "category": "Transitions",
+  "symbol": "↗",
+  "seconds": 0.85
+ },
+ {
+  "id": "pop",
+  "name": "Cartoon Pop",
+  "category": "Stickers",
+  "symbol": "●",
+  "seconds": 0.45
+ },
+ {
+  "id": "click",
+  "name": "UI Click",
+  "category": "UI / CTA",
+  "symbol": "◉",
+  "seconds": 0.22
+ },
+ {
+  "id": "impact",
+  "name": "Cinematic Impact",
+  "category": "Ads / Hooks",
+  "symbol": "✺",
+  "seconds": 1.2
+ },
+ {
+  "id": "rise",
+  "name": "Riser",
+  "category": "Transitions",
+  "symbol": "↑",
+  "seconds": 1.6
+ },
+ {
+  "id": "bell",
+  "name": "Notification Bell",
+  "category": "Social",
+  "symbol": "♫",
+  "seconds": 1
+ },
+ {
+  "id": "sparkle",
+  "name": "Sparkle",
+  "category": "Beauty",
+  "symbol": "✧",
+  "seconds": 1.1
+ },
+ {
+  "id": "snap",
+  "name": "Finger Snap",
+  "category": "Transitions",
+  "symbol": "⌁",
+  "seconds": 0.3
+ },
+ {
+  "id": "drop",
+  "name": "Bass Drop",
+  "category": "Drops",
+  "symbol": "↓",
+  "seconds": 1.35
+ },
+ {
+  "id": "swoosh",
+  "name": "Fast Swipe",
+  "category": "Transitions",
+  "symbol": "➜",
+  "seconds": 0.55
+ },
+ {
+  "id": "tada",
+  "name": "Win Stinger",
+  "category": "CTA / Offers",
+  "symbol": "★",
+  "seconds": 1.35
+ },
+ {
+  "id": "tick",
+  "name": "Countdown Tick",
+  "category": "Timers",
+  "symbol": "◷",
+  "seconds": 0.24
+ }
 ];
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const ease=x=>{x=clamp(x,0,1);return x*x*(3-2*x);};
@@ -246,49 +807,71 @@ function afterFrame(ctx,w,h,effects,t){
 }
 const notes=[0,2,3,5,7,8,10,12];
 function frequency(midi){return 440*Math.pow(2,(midi-69)/12);}
+function makeWav(pcm,sr){
+ const header=new ArrayBuffer(44+pcm.byteLength),v=new DataView(header);
+ const str=(at,txt)=>{for(let i=0;i<txt.length;i++)v.setUint8(at+i,txt.charCodeAt(i));};
+ str(0,"RIFF");v.setUint32(4,36+pcm.byteLength,true);str(8,"WAVE");str(12,"fmt ");
+ v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);
+ v.setUint32(24,sr,true);v.setUint32(28,sr*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);
+ str(36,"data");v.setUint32(40,pcm.byteLength,true);
+ new Int16Array(header,44).set(pcm);return header;
+}
 function musicWav(track){
- // 8 bars, 4/4, deterministic original instrumental, 22.05 kHz mono WAV.
+ // Original procedural composition: no recorded samples, no copyrighted melody.
  const sr=22050,beats=32,beat=60/track.bpm,total=Math.ceil(beats*beat*sr),seconds=total/sr;
- const pcm=new Int16Array(total),noteBase=track.key;
- const bassF=frequency(noteBase-12),step=beat/2;
- const seq=track.melody.map(n=>frequency(noteBase+n+12));
- const chords=track.chord.map(n=>frequency(noteBase+n));
- const rseed=MUSIC.findIndex(x=>x.id===track.id)+1;
+ const pcm=new Int16Array(total),base=frequency(track.key-12),lead=track.melody.map(n=>frequency(track.key+n+12));
+ const chord=track.chord.map(n=>frequency(track.key+n)),seed=MUSIC.indexOf(track)+1,style=track.style;
  for(let i=0;i<total;i++){
-  const t=i/sr,b=t/beat,bIndex=Math.floor(b),frac=b-bIndex,sub=t%step;
-  const bassEnvelope=Math.exp(-((t%beat)/beat)*2.4),harmony=0;
-  let sample=0;
-  const mod=(track.id==='luxury'?.23:.34);
-  const base=bassF*(track.id==='tension'&&bIndex%8>=4?1.06:1);
-  sample+=Math.sin(2*Math.PI*base*t)*.22*bassEnvelope;
-  sample+=Math.sin(2*Math.PI*base*2*t)*.05*bassEnvelope;
-  const chordEnv=.4+.2*Math.sin(2*Math.PI*t/(beat*8));
-  for(let k=0;k<chords.length;k++)sample+=Math.sin(2*Math.PI*chords[k]*t+(k*.35))*.052*chordEnv;
-  const melF=seq[Math.floor(t/(beat*2))%seq.length],mEnv=Math.exp(-sub*5);
-  sample+=Math.sin(2*Math.PI*melF*t)*.14*mEnv;
-  sample+=Math.sin(2*Math.PI*melF*2*t)*.025*mEnv;
+  const t=i/sr,b=Math.floor(t/beat),sub=t%(beat/2),p=(t%beat)/beat;
+  const bassEnv=Math.exp(-p*2.4),melEnv=Math.exp(-sub*5);
+  const root=base*(style==="cinema"&&b%8>=4?1.03:1),f=lead[Math.floor(t/(beat*2))%lead.length];
+  let sample=Math.sin(2*Math.PI*root*t)*.22*bassEnv+Math.sin(2*Math.PI*root*2*t)*.05*bassEnv;
+  if(style==="trap"||style==="phonk")sample+=Math.sin(2*Math.PI*root*.5*t)*.2*bassEnv;
+  for(let k=0;k<chord.length;k++)sample+=Math.sin(2*Math.PI*chord[k]*t+k*.35)*.052*(.4+.2*Math.sin(2*Math.PI*t/(beat*8)));
+  const osc=style==="electro"||style==="phonk"?Math.sign(Math.sin(2*Math.PI*f*t))*.55+Math.sin(2*Math.PI*f*t)*.45:Math.sin(2*Math.PI*f*t);
+  sample+=osc*.14*melEnv*(style==="ambient"?.65:1);
+  sample+=Math.sin(2*Math.PI*f*2*t)*.025*melEnv;
   if(track.beat){
-   const kickTime=t%beat,kickPhase=2*Math.PI*(48*kickTime+60*(1-Math.exp(-kickTime*30))/30);
-   sample+=Math.sin(kickPhase)*Math.exp(-kickTime*21)*.52;
-   const clapTime=t% (beat*2),clapT=clapTime>=beat?clapTime-beat:999;
-   const noise=hash(i*13+rseed*7);
-   sample+=noise*Math.exp(-clapT*25)*.22;
-   sample+=hash(i*17+rseed)*Math.exp(-sub*40)*.09;
-  }else{
-   sample+=hash(i*13+rseed)*Math.exp(-sub*45)*.023;
-  }
-  const fade=Math.min(1,t/.05,(seconds-t)/.07);
-  const value=Math.tanh(sample*1.7)*.83*clamp(fade,0,1);
-  pcm[i]=Math.round(clamp(value,-1,1)*32767);
+   const kickT=t%beat,kickPhase=2*Math.PI*(48*kickT+60*(1-Math.exp(-kickT*30))/30);
+   sample+=Math.sin(kickPhase)*Math.exp(-kickT*21)*.52;
+   const clapT=t%(beat*2)>=beat?t%(beat*2)-beat:999;
+   sample+=hash(i*13+seed*7)*Math.exp(-clapT*25)*.22;
+   sample+=hash(i*17+seed)*Math.exp(-sub*40)*.09;
+   if(["house","dance","electro"].includes(style))sample+=hash(i*19+seed*6)*Math.exp(-((t+beat/2)%beat)*55)*.1;
+   if(style==="afro")sample+=hash(i*31+seed*13)*Math.exp(-((t+beat*.25)%(beat*.75))*45)*.11;
+   if(style==="future")sample+=Math.sin(2*Math.PI*root*4*t)*Math.exp(-sub*7)*.07;
+   if(style==="phonk")sample+=Math.sign(Math.sin(2*Math.PI*f*1.5*t))*.055*melEnv;
+  }else sample+=hash(i*13+seed)*Math.exp(-sub*45)*.023;
+  const fade=clamp(Math.min(1,t/.05,(seconds-t)/.07),0,1);
+  pcm[i]=Math.round(clamp(Math.tanh(sample*1.7)*.83*fade,-1,1)*32767);
  }
- const header=new ArrayBuffer(44+pcm.byteLength),view=new DataView(header);
- const str=(at,text)=>{for(let i=0;i<text.length;i++)view.setUint8(at+i,text.charCodeAt(i));};
- str(0,'RIFF');view.setUint32(4,36+pcm.byteLength,true);str(8,'WAVE');str(12,'fmt ');
- view.setUint32(16,16,true);view.setUint16(20,1,true);view.setUint16(22,1,true);
- view.setUint32(24,sr,true);view.setUint32(28,sr*2,true);view.setUint16(32,2,true);view.setUint16(34,16,true);
- str(36,'data');view.setUint32(40,pcm.byteLength,true);
- new Int16Array(header,44).set(pcm);
- return header;
+ return makeWav(pcm,sr);
+}
+function sfxWav(preset){
+ const sr=22050,total=Math.ceil(preset.seconds*sr),pcm=new Int16Array(total),N=preset.id,seconds=preset.seconds;
+ for(let i=0;i<total;i++){
+  const t=i/sr,p=t/seconds,noise=hash(i*31+SFX.indexOf(preset)*53);let value=0;
+  if(N==="whoosh"||N==="swoosh")value=noise*Math.sin(Math.PI*p)*.42+Math.sin(2*Math.PI*(450+1300*p)*t)*.07*Math.sin(Math.PI*p);
+  if(N==="pop")value=Math.sin(2*Math.PI*(650-430*p)*t)*Math.exp(-p*16)*.75;
+  if(N==="click")value=(noise*.7+Math.sin(t*13000)*.3)*Math.exp(-p*25)*.35;
+  if(N==="impact")value=Math.sin(2*Math.PI*(85-55*p)*t)*Math.exp(-p*8)*.82+noise*Math.exp(-p*35)*.35;
+  if(N==="rise")value=(noise*.2+Math.sin(2*Math.PI*(280+1500*p*p)*t)*.32)*p*p;
+  if(N==="bell")value=(Math.sin(2*Math.PI*880*t)+Math.sin(2*Math.PI*1320*t)*.4)*Math.exp(-p*7)*.38;
+  if(N==="sparkle")value=(Math.sin(2*Math.PI*1570*t)+Math.sin(2*Math.PI*2011*t)*.45)*Math.exp(-p*5)*.29;
+  if(N==="snap")value=noise*Math.exp(-p*30)*.56;
+  if(N==="drop")value=Math.sin(2*Math.PI*(110-75*p)*t)*Math.exp(-p*3)*.76+noise*Math.exp(-p*45)*.2;
+  if(N==="tada")value=Math.sin(2*Math.PI*(550+220*Math.floor(p*3))*t)*Math.exp(-p*3)*.4;
+  if(N==="tick")value=(noise*.55+Math.sin(2*Math.PI*1200*t)*.15)*Math.exp(-p*24);
+  const fade=clamp(Math.min(1,t/.009,(seconds-t)/.01),0,1);
+  pcm[i]=Math.round(clamp(Math.tanh(value)*fade,-1,1)*32767);
+ }
+ return makeWav(pcm,sr);
+}
+async function sfxFile(id){
+ if(fileCache.has("sfx:"+id))return fileCache.get("sfx:"+id);
+ const preset=SFX.find(e=>e.id===id);if(!preset)throw Error("Unknown SFX");
+ const file=new File([sfxWav(preset)],"PTS-SFX-"+id+".wav",{type:"audio/wav"});
+ fileCache.set("sfx:"+id,file);return file;
 }
 async function musicFile(id){
  if(fileCache.has(id))return fileCache.get(id);
@@ -298,5 +881,5 @@ async function musicFile(id){
  const file=new File([buffer],'PTS-'+t.name.replace(/[^a-zA-Z0-9-]+/g,'-')+'.wav',{type:'audio/wav'});
  fileCache.set(id,file);return file;
 }
-global.PTSCreative={STICKERS,EFFECTS,MUSIC,getSticker,getEffect,makePanel,stopPreview,drawSticker,beforeFrame,afterFrame,musicFile};
+global.PTSCreative={STICKERS,EFFECTS,MUSIC,SFX,getSticker,getEffect,makePanel,stopPreview,drawSticker,beforeFrame,afterFrame,musicFile,sfxFile};
 })(window);
