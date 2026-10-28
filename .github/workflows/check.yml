@@ -14,7 +14,9 @@ jobs:
         with:
           node-version: '22'
       - name: Check JavaScript syntax
-        run: node --check app.js
+        run: |
+          node --check app.js
+          node --check creative-tools.js
       - name: Build deploy directory
         run: bash build.sh
       - name: Smoke-check output
@@ -22,10 +24,12 @@ jobs:
           test -s dist/index.html
           test -s dist/styles.css
           test -s dist/app.js
+          test -s dist/creative-tools.js
           test -s dist/_headers
           grep -q 'script src="./app.js"' dist/index.html
           grep -q 'id="screen"' dist/index.html
           grep -q 'MediaRecorder' dist/app.js
+          grep -q 'creative-tools.js' dist/index.html
           echo 'Cloudflare static output OK'
       - name: Install Playwright (CI-only dev tooling)
         run: |
