@@ -627,3 +627,73 @@ input[type="range"]{accent-color:#ececec}
 .export-quality-field select:disabled{opacity:.56;cursor:not-allowed}
 .export-quality-field small{color:#a4a6ae;font-size:10px;line-height:1.5}
 .export-bitrate{font-size:10px!important;color:#bdc0c7!important;margin-top:-8px!important}
+
+
+/* 2026-10 — Ukrainian cinematic micro-interactions.
+   Interfaces animate; video canvas and exported frames remain untouched. */
+:root{--motion-fast:130ms;--motion-medium:250ms;--ease-studio:cubic-bezier(.22,1,.36,1)}
+@keyframes pts-panel-reveal{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pts-status-glint{0%{color:#77797e}40%{color:#fff}100%{color:#a7a8ae}}
+@keyframes pts-tap{0%{filter:brightness(1)}45%{filter:brightness(1.35);transform:scale(.985)}100%{filter:brightness(1);transform:scale(1)}}
+@keyframes pts-live-pulse{0%,100%{opacity:.5;box-shadow:0 0 0 0 #ffffff15}50%{opacity:1;box-shadow:0 0 0 4px #ffffff0d}}
+@keyframes pts-selection-enter{from{opacity:.45;transform:translateY(2px)}to{opacity:1;transform:translateY(0)}}
+.library-reveal{animation:pts-panel-reveal 220ms var(--ease-studio) both}
+.asset-lib-guide{
+ padding:10px 14px 9px;
+ border-bottom:1px solid #ffffff0d;
+ background:linear-gradient(90deg,#ffffff0b,transparent 85%);
+ font-size:9px;font-weight:750;letter-spacing:.4px;color:#a8a9af;
+}
+.workspace-nav button,.asset-lib-nav button,.asset-category-scroll button{
+ transition:background-color var(--motion-fast) ease,color var(--motion-fast) ease,border-color var(--motion-fast) ease;
+}
+.workspace-nav button.active,.asset-lib-nav button.active{
+ box-shadow:inset 0 -2px 0 #b7b8bc,0 1px 8px #fff2;
+}
+.creative-hero{transition:background-color var(--motion-medium) ease}
+.creative-hero-line button{transition:background-color var(--motion-fast) ease,transform var(--motion-medium) var(--ease-studio)}
+.creative-hero-line button:hover{background:#3b3c43;transform:scale(1.06)}
+.tool,.asset,.music-card,.fx-tile,.sticker-tile,.overlay-tile,.motion-tile{
+ transition:background-color var(--motion-fast) ease,border-color var(--motion-fast) ease,box-shadow var(--motion-medium) ease,transform var(--motion-medium) var(--ease-studio);
+}
+.tool:hover,.asset:hover,.music-card:hover,.fx-tile:hover,.sticker-tile:hover,.overlay-tile:hover,.motion-tile:hover{
+ transform:translateY(-1px);
+ box-shadow:0 7px 22px #0004;
+}
+.tool:active,.asset:active,.music-card:active,.fx-tile:active,.sticker-tile:active,.overlay-tile:active,.motion-tile:active{transform:scale(.985)}
+.emoji-item:hover{box-shadow:0 7px 20px #fff1}
+.emoji-item:focus-visible{z-index:2;position:relative}
+.ui-clicked{animation:pts-tap .22s var(--ease-studio)}
+.status-flash{animation:pts-status-glint .7s ease-out forwards}
+.transport{position:relative;overflow:hidden}
+.playback-progress{pointer-events:none;position:absolute;top:0;left:0;right:0;height:2px;background:#ffffff0b;z-index:4}
+#playback-progress-fill{width:0%;height:100%;background:#eeeeee;box-shadow:0 0 7px #fff8;will-change:width}
+.playback-indicator{display:inline-block;vertical-align:middle;width:6px;height:6px;margin-right:4px;border-radius:50%;background:#71747b}
+.stage.is-playing .playback-indicator{background:#f6f6f6;animation:pts-live-pulse 1.7s ease-in-out infinite}
+.stage.is-playing .stage-caption{color:#a3a5ad}
+.stage.is-playing #playback-progress-fill{box-shadow:0 0 9px #fffa}
+.stage .round{transition:transform var(--motion-medium) var(--ease-studio),box-shadow var(--motion-medium) ease,background-color var(--motion-fast) ease}
+.stage .round:hover{transform:scale(1.08);box-shadow:0 0 16px #ffffff40}
+.stage .round:active{transform:scale(.95)}
+.stage-top .signal{display:inline-block;animation:pts-live-pulse 3s ease-in-out infinite}
+.clip{transition:border-color .16s ease,filter .16s ease,box-shadow .16s ease}
+.clip.selected{box-shadow:inset 0 0 0 1px #ffffff9c,0 0 0 2px #ffffff2f}
+.clip:not(.selected):hover{filter:brightness(1.25)}
+.inspector{animation:pts-panel-reveal .21s var(--ease-studio) both}
+.inspector .field input,.inspector .field select,.inspector .field textarea{
+ transition:border-color .16s ease,background-color .16s ease,box-shadow .16s ease
+}
+.inspector .field :is(input,select,textarea):focus{
+ border-color:#c6c6c8;background:#25262a;box-shadow:0 0 0 2px #ffffff13;outline:none
+}
+#toast{transition:opacity .2s ease,transform .28s var(--ease-studio)}
+.asset-lib-search:focus-within{border-color:#d0d2d6;box-shadow:0 0 0 2px #ffffff12}
+dialog[open]{animation:pts-panel-reveal .23s var(--ease-studio) both}
+dialog::backdrop{backdrop-filter:blur(5px)}
+@media(max-width:850px){.transport-note{max-width:160px;overflow:hidden;text-overflow:ellipsis}}
+@media(prefers-reduced-motion:reduce){
+ .library-reveal,.ui-clicked,.status-flash,.stage.is-playing .playback-indicator,.stage-top .signal,.inspector,dialog[open]{animation:none!important}
+ .workspace-nav button,.asset-lib-nav button,.asset-category-scroll button,.tool,.asset,.music-card,.fx-tile,.sticker-tile,.overlay-tile,.motion-tile,.creative-hero-line button,.clip,.stage .round{transition:none!important}
+ .tool:hover,.asset:hover,.music-card:hover,.fx-tile:hover,.sticker-tile:hover,.overlay-tile:hover,.motion-tile:hover,.stage .round:hover{transform:none}
+ dialog::backdrop{backdrop-filter:none}
+}
