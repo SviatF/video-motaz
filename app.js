@@ -169,6 +169,10 @@ function renderInspector(){
   const meta=PTSOverlays.getPreset(c.overlay);
   html+='<p class="overlay-help">Ефект охоплює весь відеокадр. Натисни «На всю довжину» для повного ролика або змінюй краї кліпу на таймлайні.</p>';
   html+='<div class="mini">'+h(meta?.name||c.overlay)+' · '+h(meta?.tag||"")+'</div>';
+  if(state.overlays.length>1){
+    html+='<div class="field"><label>ШАРИ FULLSCREEN FX</label><div class="overlay-layer-list">'+state.overlays.map(o=>'<button type="button" data-select-overlay="'+h(o.id)+'" class="'+(o.id===c.id?'current':'')+'">'+h(PTSOverlays.getPreset(o.overlay)?.name||o.overlay)+' <span>'+fmt(o.start)+'s</span></button>').join('')+'</div></div>';
+  }
+
   html+=field("ІНТЕНСИВНІСТЬ, %","prop-density",c.intensity??65,'type="number" min="5" max="150" step="5"');
   html+=field("ШВИДКІСТЬ, X","prop-overlay-speed",c.speed??1,'type="number" min=".05" max="5" step=".1"');
   html+=field("РОЗМІР ЧАСТИНОК, %","prop-overlay-size",c.size??100,'type="number" min="20" max="300" step="10"');
@@ -201,6 +205,7 @@ function renderInspector(){
   inspectorInput("prop-color",(obj,v)=>obj.color=v);
  }
  if(selected.kind==="overlay"){
+  node.querySelectorAll("[data-select-overlay]").forEach(btn=>btn.onclick=()=>selectClip("overlay",btn.dataset.selectOverlay));
   inspectorInput("prop-density",(obj,v)=>obj.intensity=clamp(num(v,obj.intensity),5,150));
   inspectorInput("prop-overlay-speed",(obj,v)=>obj.speed=clamp(num(v,obj.speed),.05,5));
   inspectorInput("prop-overlay-size",(obj,v)=>obj.size=clamp(num(v,obj.size),20,300));
