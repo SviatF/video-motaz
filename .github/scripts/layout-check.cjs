@@ -65,6 +65,20 @@ const cases=[
       if(size.name==='desktop-reference'){
         await page.locator('[data-workspace="creative"]').click();
         if(!(await page.locator('#creative-view').isVisible()))issues.push('creative workspace not displayed');
+        await page.locator('#library-expand').click();
+        const wide=await page.evaluate(()=>({
+          width:document.querySelector('.library').getBoundingClientRect().width,
+          bottom:document.querySelector('.library').getBoundingClientRect().bottom,
+          timelineTop:document.querySelector('.timeline').getBoundingClientRect().top,
+          pageOverflow:document.documentElement.scrollWidth-innerWidth
+        }));
+        if(wide.width<500)issues.push('expanded creative library too narrow');
+        if(wide.bottom>wide.timelineTop+2)issues.push('expanded library overlaps timeline');
+        if(wide.pageOverflow>3)issues.push('expanded creative library has horizontal overflow');
+        await page.locator('#library-expand').click();
+        await page.locator('[data-emoji-category="Smileys & Emotion"]').click();
+        if(await page.locator('.emoji-item').count()<40)issues.push('emoji category filter failed');
+        await page.locator('[data-emoji-category="all"]').click();
         const count=await page.evaluate(()=>window.PTSEmojis?.count);
         if(count!==3963)issues.push('emoji catalog count incorrect: '+count);
         if(await page.locator('.emoji-item').count()<60)issues.push('emoji grid did not render initial page');
