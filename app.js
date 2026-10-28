@@ -635,6 +635,59 @@ async function importSrt(file){
  }
  if(count){selected={kind:"caption",id:state.captions[state.captions.length-1].id};persist();toast("Імпортовано субтитрів: "+count);}else toast("SRT не містить коректних таймкодів.");
 }
+function sourceFile(){
+ const id=$("smart-audio-source")?.value,meta=getMedia(id);
+ if(!meta||!assetUrls.has(id))throw Error("Спочатку обери звуковий файл у медіатеці.");
+ return {id,meta,url:assetUrls.get(id)};
+}
+function smartStatus(message){const el=$("smart-progress");if(el)el.textContent=message;}
+async function analyzeBeats(){
+ const button=$("analyze-beats");button.disabled=true;
+ let ctxLocal=null;
+ try{
+  const source=sourceFile();smartStatus("Аналіз звукової хвилі на пристрої…");
+  const bytes=await(await fetch(source.url)).arrayBuffer();
+  ctxLocal=new (window.AudioContext||window.webkitAudioContext)();
+  const audio=await ctxLocal.decodeAudioData(bytes.slice(0));
+  const found=PTSBeatSync.detect(audio);
+  const timelineAudio=state.audios.find(x=>x.mediaId===source.id);
+  const offset=timelineAudio?.start||0,trim=timelineAudio?.trim||0;
+  state.beats=found.map(t=>t-trim+offset).filter(t=>t>0&&t<duration());
+  persist();smartStatus("Знайдено ударів: "+state.beats.length+" · маркери з’явилися на шкалі.");
+  toast("Ритм знайдено: "+state.beats.length+" позначок");
+ }catch(e){console.error("Beat sync",e);smartStatus("Не вдалося знайти ритм: "+e.message);toast("Помилка аналізу звуку");}
+ finally{if(ctxLocal)await ctxLocal.close();button.disabled=false;}
+}
+function cutBeats(){
+ if(!state.beats?.length){toast("Спочатку натисни «Знайти ритм».");return;}
+ const originals=selected?.kind==="video" ? state.clips.filter(x=>x.id===selected.id) : state.clips;
+ if(!originals.length){toast("Додай відео на монтажну шкалу.");return;}
+ const result=PTSBeatSync.splitAtBeats(originals,state.beats,{maxCuts:80,minDuration:.35});
+ if(!result.cuts){toast("У вибраному відео немає відповідних точок ритму.");return;}
+ if(selected?.kind==="video"){
+  const existing=state.clips.findIndex(x=>x.id===selected.id);
+  state.clips.splice(existing,1,...result.clips);
+ }else state.clips=result.clips;
+ selected={kind:"video",id:result.clips[0].id};persist();
+ toast("За ритмом створено "+result.cuts+" розрізів");
+ smartStatus("Готово: "+result.cuts+" розрізів. Їх можна редагувати вручну.");
+}
+async function generateCaptions(){
+ const button=$("generate-captions");button.disabled=true;
+ try{
+  const source=sourceFile();
+  if(source.meta.kind!=="audio")throw Error("Для локального Whisper обери аудіофайл WAV, MP3 або M4A. Розпізнавання напряму з відео поки не підтримується.");
+  const file=await(await fetch(source.url)).blob();
+  const items=await PTSLocalSpeech.transcribe(file,smartStatus);
+  if(!items.length)throw Error("Розпізнаних фраз немає. Спробуй чіткіший запис.");
+  const clip=state.audios.find(x=>x.mediaId===source.id),shift=clip?.start||0,trim=clip?.trim||0;
+  const newCaptions=items.map(c=>({id:uid(),start:Math.max(0,+(c.start-trim+shift).toFixed(3)),duration:c.duration,text:c.text,style:"highlight"}));
+  state.captions.push(...newCaptions);selected={kind:"caption",id:newCaptions[0].id};
+  persist();smartStatus("Готово! Створено "+newCaptions.length+" фрагментів. Перевір текст і таймкоди перед публікацією.");
+  toast("Локальні субтитри додано: "+newCaptions.length);
+ }catch(e){console.error("Whisper transcription",e);smartStatus("Не вдалося створити субтитри: "+e.message);toast("Помилка локального розпізнавання");}
+ finally{button.disabled=false;}
+}
 function exportSettings(){
  const choices=["video/mp4;codecs=avc1.42E01E,mp4a.40.2","video/mp4;codecs=avc1.42E01E","video/mp4","video/webm;codecs=vp9,opus","video/webm;codecs=vp9","video/webm;codecs=vp8,opus","video/webm"];
  const type=typeof MediaRecorder!=="undefined"?choices.find(t=>MediaRecorder.isTypeSupported(t)):"";
@@ -781,6 +834,9 @@ PTSCreative.makePanel($("creative-library"),{
   error:toast
  });
  $("add-title").onclick=addTitle;$("add-caption").onclick=addCaption;$("record-btn").onclick=toggleMic;
+ $("analyze-beats").onclick=analyzeBeats;
+ $("split-beats").onclick=cutBeats;
+ $("generate-captions").onclick=generateCaptions;
 $("split-btn").onclick=splitSelected;$("delete-btn").onclick=removeSelected;
 $("left-btn").onclick=()=>moveSelected(-1);$("right-btn").onclick=()=>moveSelected(1);
 $("save-btn").onclick=()=>{store();toast("Проєкт збережено в цьому браузері.");};
