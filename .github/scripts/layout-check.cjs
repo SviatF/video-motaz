@@ -174,6 +174,10 @@ const cases=[
         if(await page.locator('[data-overlay]').count()<2)issues.push('fire overlay search failed');
         await page.locator('[data-overlay="fire"]').click();
         if(await page.locator('#overlay-track .clip.overlay').count()!==2)issues.push('fire overlay missing from track');
+        if(await page.locator('[data-select-overlay]').count()!==2)issues.push('overlay stack does not expose overlapping layers');
+        await page.locator('[data-select-overlay]').first().click();
+        if(await page.locator('#prop-overlay-speed').inputValue()!=='2')issues.push('cannot select snow under fire in inspector');
+
         await page.locator('#asset-search').fill('');
                 await page.locator('[data-library-tab="music"]').click();
         await page.locator('[data-music="pulse"]').click();
