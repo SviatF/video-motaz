@@ -42,6 +42,11 @@ async function load(progress,{quality="balanced"}={}){
    }
   }
   if(!recognizer)recognizer=await mod.pipeline("automatic-speech-recognition",choice.id,cpuOptions);
+  // Avoid retaining hundreds of MB of old decoder/encoder tensors after
+  // switching from Base to Small or vice versa in the same editor session.
+  for(const [id,old] of cache){
+   if(id!==choice.id){try{await old.dispose?.();}catch(_){}cache.delete(id);}
+  }
   cache.set(choice.id,recognizer);
   return recognizer;
  })();
