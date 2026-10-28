@@ -63,6 +63,22 @@ const cases=[
       if(title===0) issues.push('adding text layer failed');
       // Time-editing regression: drag the title along its track, then resize its right edge.
       if(size.name==='desktop-reference'){
+        const engines=await page.evaluate(()=>({
+          motion:typeof window.PTSMotion?.position,
+          beat:typeof window.PTSBeatSync?.detect,
+          speech:typeof window.PTSLocalSpeech?.transcribe
+        }));
+        if(engines.motion!=='function'||engines.beat!=='function'||engines.speech!=='function')issues.push('new editing engines not loaded: '+JSON.stringify(engines));
+        if(!await page.locator('#analyze-beats').count())issues.push('beat detection UI missing');
+        if(!await page.locator('#generate-captions').count())issues.push('Whisper captions UI missing');
+        if(!await page.locator('#key-add').count())issues.push('keyframe controls missing');
+        else{
+          await page.locator('#key-add').click();
+          const keys=await page.evaluate(()=>JSON.parse(localStorage.getItem('pts-creative-project-v1')||'{}').titles?.[0]?.keyframes||[]);
+          if(!keys.length)issues.push('keyframe did not persist');
+        }
+      }
+      if(size.name==='desktop-reference'){
         if(!(await page.title()).includes("відеомонтажер"))issues.push('site title not Ukrainian');
         if(!(await page.locator('.workspace-nav').textContent()).includes('БІБЛІОТЕКА ЕФЕКТІВ'))issues.push('creative workspace tab not Ukrainian');
         if(!(await page.locator('.timeline-title').textContent()).includes('МОНТАЖНА ШКАЛА'))issues.push('timeline heading not Ukrainian');
