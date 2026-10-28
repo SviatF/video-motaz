@@ -41,53 +41,10 @@
         </label>
         <button type="button" id="analyze-beats" class="tool"><span>♫</span><div><b>ЗНАЙТИ РИТМ</b><small>Автоматичні позначки ударів музики</small></div><i>◎</i></button>
         <button type="button" id="split-beats" class="tool"><span>✂</span><div><b>НАРІЗАТИ ЗА РИТМОМ</b><small>Розрізати відео за позначками</small></div><i>↗</i></button>
-        <label class="smart-captions-style" for="auto-caption-language">МОВА МОВЛЕННЯ
-<select id="auto-caption-language">
-  <option value="auto">Автоматично визначити</option>
-  <option value="pl">Польська</option>
-  <option value="uk">Українська</option>
-  <option value="en">Англійська</option>
-  <option value="de">Німецька</option>
-  <option value="es">Іспанська</option>
-  <option value="fr">Французька</option>
-  <option value="it">Італійська</option>
-  <option value="pt">Португальська</option>
-  <option value="cs">Чеська</option>
-  <option value="sk">Словацька</option>
-  <option value="ru">Російська</option>
-  <option value="ro">Румунська</option>
-  <option value="tr">Турецька</option>
-  <option value="nl">Нідерландська</option>
-  <option value="hu">Угорська</option>
-  <option value="ar">Арабська</option>
-  <option value="hi">Гінді</option>
-</select></label>
-<label class="smart-captions-style" for="auto-caption-quality">ЯКІСТЬ РОЗПІЗНАВАННЯ
-<select id="auto-caption-quality">
- <option value="balanced" selected>ПОКРАЩЕНА · Whisper Base (рекомендовано)</option>
- <option value="accurate">МАКСИМАЛЬНА · Whisper Small (потрібен WebGPU)</option>
- <option value="fast">ШВИДКА · Whisper Tiny (менш точна)</option>
-</select></label>
-<p class="asr-quality-note">Для польської: обери «Польська» й за можливості Whisper Small. Великі моделі завантажуються лише при запуску.</p>
-<label class="smart-captions-style" for="auto-caption-style">ВИГЛЯД СУБТИТРІВ
-<select id="auto-caption-style">
-  <option value="highlight">Підсвічування вимовленого слова</option>
-  <option value="bold">Великі динамічні субтитри</option>
-  <option value="classic">Класичні субтитри</option>
-</select></label>
-<button type="button" id="generate-captions" class="tool"><span>CC</span><div><b>АВТОСУБТИТРИ З ВІДЕО · ШІ</b><small>Справжні слова з голосу + таймкоди</small></div><i>✧</i></button>
-        <div class="smart-progress" id="smart-progress" role="status" aria-live="polite">
- <span class="smart-progress-dot" aria-hidden="true"></span>
- <div class="smart-progress-copy">
-  <div class="smart-progress-title" id="smart-progress-title">ГОТОВО ДО РОЗПІЗНАВАННЯ</div>
-  <div class="smart-progress-message" id="smart-progress-message">Оберіть відео та запустіть автосубтитри.</div>
-  <div class="smart-progress-meter" id="smart-progress-meter" hidden><span id="smart-progress-fill"></span></div>
- </div>
-</div>
-<div class="caption-summary" id="caption-summary" hidden aria-live="polite"></div>
+
       </div>
     </div>
-    <p class="hint">Медіафайли залишаються на пристрої. ШІ-субтитри з відео або аудіо створюються локально. Для відео витягування голосу триває стільки ж, скільки ролик.</p>
+    <p class="hint">Щоб створити автосубтитри, вибери відео на монтажній шкалі й скористайся кнопкою у правій панелі властивостей. Медіафайли залишаються на пристрої.</p>
   </div>
     <div class="library-view" id="creative-view" hidden>
       <div class="creative-hero">
@@ -136,4 +93,53 @@
 <script src="./video-audio-extract.js" defer></script>
 <script src="./local-transcription.js" defer></script>
 <script src="./app.js" defer></script>
+<template id="video-caption-template">
+ <section class="video-caption-panel">
+  <div class="caption-panel-heading"><span>✧</span><div><b>АВТОСУБТИТРИ З ГОЛОСУ</b><small>Для вибраного кліпу · без завантаження відео на сервер</small></div></div>
+          <label class="smart-captions-style" for="auto-caption-language">МОВА МОВЛЕННЯ
+<select id="auto-caption-language">
+  <option value="auto">Автоматично визначити</option>
+  <option value="pl">Польська</option>
+  <option value="uk">Українська</option>
+  <option value="en">Англійська</option>
+  <option value="de">Німецька</option>
+  <option value="es">Іспанська</option>
+  <option value="fr">Французька</option>
+  <option value="it">Італійська</option>
+  <option value="pt">Португальська</option>
+  <option value="cs">Чеська</option>
+  <option value="sk">Словацька</option>
+  <option value="ru">Російська</option>
+  <option value="ro">Румунська</option>
+  <option value="tr">Турецька</option>
+  <option value="nl">Нідерландська</option>
+  <option value="hu">Угорська</option>
+  <option value="ar">Арабська</option>
+  <option value="hi">Гінді</option>
+</select></label>
+<label class="smart-captions-style" for="auto-caption-quality">ЯКІСТЬ РОЗПІЗНАВАННЯ
+<select id="auto-caption-quality">
+ <option value="balanced" selected>ПОКРАЩЕНА · Whisper Base (рекомендовано)</option>
+ <option value="accurate">МАКСИМАЛЬНА · Whisper Small (потрібен WebGPU)</option>
+ <option value="fast">ШВИДКА · Whisper Tiny (менш точна)</option>
+</select></label>
+<p class="asr-quality-note">Для польської: обери «Польська» й за можливості Whisper Small. Великі моделі завантажуються лише при запуску.</p>
+<label class="smart-captions-style" for="auto-caption-style">ВИГЛЯД СУБТИТРІВ
+<select id="auto-caption-style">
+  <option value="highlight">Підсвічування вимовленого слова</option>
+  <option value="bold">Великі динамічні субтитри</option>
+  <option value="classic">Класичні субтитри</option>
+</select></label>
+<button type="button" id="generate-captions" class="tool inspector-caption-cta"><span>CC</span><div><b>АВТОСУБТИТРИ З ВІДЕО · ШІ</b><small>Справжні слова з голосу + таймкоди</small></div><i>✧</i></button>
+        <div class="smart-progress" id="smart-progress" role="status" aria-live="polite">
+ <span class="smart-progress-dot" aria-hidden="true"></span>
+ <div class="smart-progress-copy">
+  <div class="smart-progress-title" id="smart-progress-title">ГОТОВО ДО РОЗПІЗНАВАННЯ</div>
+  <div class="smart-progress-message" id="smart-progress-message">Оберіть відео та запустіть автосубтитри.</div>
+  <div class="smart-progress-meter" id="smart-progress-meter" hidden><span id="smart-progress-fill"></span></div>
+ </div>
+</div>
+<div class="caption-summary" id="caption-summary" hidden aria-live="polite"></div>
+ </section>
+</template>
 </body></html>
