@@ -218,8 +218,10 @@ function drawText(x){
  if(x.animation==="none")ctx.globalAlpha=1;
  if(x.animation==="slide")ctx.translate(0,(1-clamp(t*5,0,1))*50);
  if(x.animation==="pop"){const scale=.85+.15*clamp(t*6,0,1);ctx.translate(canvas.width/2,canvas.height*x.y/100);ctx.scale(scale,scale);ctx.translate(-canvas.width/2,-canvas.height*x.y/100);}
+ if(x.animation==="pulse"||x.animation==="bounce"){const scale=x.animation==="pulse"?1+.045*Math.sin((now-x.start)*9):.9+.12*Math.abs(Math.sin((now-x.start)*12));ctx.translate(canvas.width/2,canvas.height*x.y/100);ctx.scale(scale,scale);ctx.translate(-canvas.width/2,-canvas.height*x.y/100);}
  const fontSize=canvas.width*x.size/100;const font="900 "+Math.round(fontSize)+"px Arial, sans-serif";
- const lines=breakLines(x.text,canvas.width*.86,font);const lineHeight=fontSize*1.13;
+ const text=x.animation==="typewriter"?x.text.slice(0,Math.ceil(x.text.length*Math.min(1,(now-x.start)/Math.min(.9,x.duration)*1.1))):x.text;
+ const lines=breakLines(text,canvas.width*.86,font);const lineHeight=fontSize*1.13;
  ctx.fillStyle="#fff";ctx.textAlign="center";ctx.textBaseline="middle";ctx.font=font;
  const startY=canvas.height*x.y/100-(lines.length-1)*lineHeight/2;
  lines.forEach((line,i)=>{ctx.shadowColor="#000";ctx.shadowBlur=8;ctx.fillText(line,canvas.width/2,startY+i*lineHeight);});
@@ -234,12 +236,17 @@ function drawCaption(x){
 }
 function draw(t){
  now=clamp(t,0,duration());const w=canvas.width,hh=canvas.height;ctx.fillStyle="#080809";ctx.fillRect(0,0,w,hh);
+ const activeEffects=state.effects.filter(e=>now>=e.start&&now<e.start+e.duration);
+ PTSCreative.beforeFrame(ctx,w,hh,activeEffects,now);
  const clip=state.clips.find(c=>now>=c.start&&now<c.start+c.duration),m=clip?getMedia(clip.mediaId):null;
  if(m){const url=assetUrls.get(m.id);
   if(m.kind==="video"){const el=syncVideo(now,playing);if(el&&el.readyState>=2){try{drawCover(el,w,hh);}catch(e){}}}
   else if(m.kind==="image"&&url){let img=imageCache.get(m.id);if(!img){img=new Image();img.src=url;imageCache.set(m.id,img);img.onload=()=>draw(now);}if(img.complete&&img.naturalWidth)drawCover(img,w,hh);video.pause();}
- }else{video.pause();if(!state.clips.length&&!state.titles.length&&!state.captions.length){ctx.fillStyle="#f4f4f4";ctx.font="900 "+Math.round(w*.095)+"px Arial";ctx.textAlign="center";ctx.fillText("PTS",w/2,hh/2-20);ctx.fillStyle="#888";ctx.font=Math.round(w*.026)+"px Arial";ctx.fillText("UPLOAD MEDIA TO BEGIN",w/2,hh/2+28);}}
+ }else{video.pause();if(!state.clips.length&&!state.titles.length&&!state.captions.length&&!state.stickers.length&&!state.effects.length){ctx.fillStyle="#f4f4f4";ctx.font="900 "+Math.round(w*.095)+"px Arial";ctx.textAlign="center";ctx.fillText("PTS",w/2,hh/2-20);ctx.fillStyle="#888";ctx.font=Math.round(w*.026)+"px Arial";ctx.fillText("UPLOAD MEDIA TO BEGIN",w/2,hh/2+28);}}
+ ctx.restore();
+ PTSCreative.afterFrame(ctx,w,hh,activeEffects,now);
  state.titles.filter(c=>now>=c.start&&now<c.start+c.duration).forEach(drawText);
+ state.stickers.filter(c=>now>=c.start&&now<c.start+c.duration).forEach(c=>PTSCreative.drawSticker(ctx,w,hh,c,now));
  state.captions.filter(c=>now>=c.start&&now<c.start+c.duration).forEach(drawCaption);
  positionHead();
 }
@@ -280,6 +287,7 @@ function tick(){
 }
 async function play(){
  if(playing){stop();return;}
+ PTSCreative.stopPreview();
  if(now>=duration()-.05)now=0;
  await initializeAudio();if(audioContext)await audioContext.resume();
  playing=true;startedAt=performance.now();startedFrom=now;$("play-btn").textContent="Ⅱ";tick();
@@ -356,7 +364,12 @@ async function boot(){
 }
 $("file-input").addEventListener("change",async e=>{await importFiles(e.target.files);e.target.value="";});
 $("srt-input").addEventListener("change",async e=>{await importSrt(e.target.files[0]);e.target.value="";});
-$("add-title").onclick=addTitle;$("add-caption").onclick=addCaption;$("record-btn").onclick=toggleMic;
+PTSCreative.makePanel($("creative-library"),{
+  addSticker,addEffect,
+  addMusic:async file=>{await importFiles([file]);toast("Музику додано на аудіодоріжку");},
+  error:toast
+ });
+ $("add-title").onclick=addTitle;$("add-caption").onclick=addCaption;$("record-btn").onclick=toggleMic;
 $("split-btn").onclick=splitSelected;$("delete-btn").onclick=removeSelected;
 $("left-btn").onclick=()=>moveSelected(-1);$("right-btn").onclick=()=>moveSelected(1);
 $("save-btn").onclick=()=>{store();toast("Проєкт збережено в цьому браузері.");};
