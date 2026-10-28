@@ -376,3 +376,36 @@ input[type="range"]{accent-color:#ececec}
 
 /* Keep all four timeline tracks above the footer on small screens. */
 @media (max-width:680px){.timeline{height:288px;min-height:288px}}
+
+/* CREATIVE SUITE V1 — interactive assets and five clear timeline lanes */
+.creative-section{padding-bottom:3px;border-top:1px solid #313236;margin-top:19px}
+.creative-heading{margin-top:17px!important}
+.creative-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px;padding:0 18px 9px}
+.creative-tabs button{min-width:0;cursor:pointer;border:1px solid #343539;border-radius:3px;padding:9px 3px;background:#1c1d20;color:#9b9da2;font-size:9px;font-weight:800;letter-spacing:.6px}
+.creative-tabs button.active{background:#f0f0f0;color:#09090a;border-color:#fff}
+.creative-list{padding:0 18px;display:flex;flex-direction:column;gap:6px}
+.creative-subtitle{font-size:9px;color:#999ba0;text-transform:uppercase;letter-spacing:1.25px;padding:2px 0 7px}
+.creative-card,.music-card{width:100%;min-width:0;display:flex;align-items:center;gap:10px;min-height:53px;border:1px solid #34353a;border-radius:4px;padding:7px 8px;color:#efeff0;background:linear-gradient(110deg,#222326,#191a1c);text-align:left}
+.creative-card:hover,.music-card:hover{border-color:#8c8d91;background:#28292c}
+.creative-symbol{flex:0 0 38px;height:36px;display:grid;place-items:center;color:#fafafa;background:radial-gradient(circle at 45% 25%,#56575c,#28292b 70%);font-size:19px;font-weight:900;border:1px solid #515257;border-radius:3px}
+.creative-text{flex:1;display:flex;min-width:0;flex-direction:column;gap:3px}
+.creative-text b{font-size:10px;letter-spacing:.22px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.creative-text small{font-size:9px;color:#999ba0;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.creative-add{font-size:20px;font-weight:400;color:#bbb}
+.music-preview,.music-add{flex:0 0 34px;height:35px;border-radius:3px;background:#333438;border:1px solid #55565b;color:#f3f3f4;font-size:13px;font-weight:800}
+.music-preview:hover,.music-add:hover{background:#525359}
+.music-add{flex-basis:28px;background:transparent;border-color:#44464a;font-size:17px}
+.library-fineprint{font-size:9px;color:#888a90;line-height:1.6;padding:2px 19px 0}
+.clip.sticker{background:linear-gradient(110deg,#343339,#242428);border-color:#95919c}
+.clip.effect{background:linear-gradient(110deg,#36363b,#25252a);border-color:#706f7e}
+.track-inner{height:211px;min-height:211px}
+:root{--studio-timeline:clamp(303px,33vh,353px)}
+@media (min-width:681px) and (max-width:1000px){
+ .shell{grid-template-rows:68px minmax(710px,auto) 300px}
+ .timeline{height:300px}
+}
+@media (max-width:680px){
+ .timeline{height:326px;min-height:326px}
+ .creative-tabs{padding-left:16px;padding-right:16px}
+ .creative-list{padding-left:16px;padding-right:16px}
+}
