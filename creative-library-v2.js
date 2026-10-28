@@ -71,7 +71,7 @@ function makePanel(node,actions){
   void results.offsetWidth;
   results.classList.add("library-reveal");
   if(state.tab==="emoji"){
-   const list=emojiOrdered.filter(x=>(state.category==="all"||x.group===state.category)&&matches(x.name+" "+x.emoji+" "+(groupLabels[x.group]||x.group)));
+   const list=emojiOrdered.filter(x=>(state.category==="all"||x.group===state.category)&&matches(x.name+" "+global.PTSUk.emojiName(x.emoji)+" "+x.emoji+" "+(groupLabels[x.group]||x.group)));
    const current=list.slice(0,state.limit);
    results.innerHTML=header("ЕМОДЗІ UNICODE 18.0",list.length.toLocaleString("uk-UA")+" СИМВОЛІВ","Натисни, щоб додати")+
     '<div class="asset-category-scroll" aria-label="Категорії emoji">'+
