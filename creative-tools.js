@@ -529,6 +529,246 @@ const MUSIC=[
   ],
   "style": "dance",
   "beat": true
+ },
+ {
+  "id": "jersey",
+  "name": "JERSEY CLUB BOUNCE",
+  "category": "Jersey Club / Viral Edits",
+  "bpm": 144,
+  "key": 53,
+  "melody": [
+   0,
+   3,
+   7,
+   10
+  ],
+  "chord": [
+   0,
+   3,
+   7
+  ],
+  "style": "dance",
+  "beat": true
+ },
+ {
+  "id": "funk",
+  "name": "BAILE FUNK VOLTAGE",
+  "category": "Brazilian Funk / Reels",
+  "bpm": 132,
+  "key": 49,
+  "melody": [
+   0,
+   5,
+   3,
+   7
+  ],
+  "chord": [
+   0,
+   3,
+   7
+  ],
+  "style": "electro",
+  "beat": true
+ },
+ {
+  "id": "sped",
+  "name": "SPEED UP GLOW",
+  "category": "Speed-Up / Fashion",
+  "bpm": 164,
+  "key": 59,
+  "melody": [
+   0,
+   4,
+   12,
+   7
+  ],
+  "chord": [
+   0,
+   4,
+   7
+  ],
+  "style": "dance",
+  "beat": true
+ },
+ {
+  "id": "slowed",
+  "name": "MIDNIGHT SLOWED",
+  "category": "Slowed / Atmosphere",
+  "bpm": 78,
+  "key": 48,
+  "melody": [
+   0,
+   7,
+   5,
+   3
+  ],
+  "chord": [
+   0,
+   3,
+   7
+  ],
+  "style": "ambient",
+  "beat": false
+ },
+ {
+  "id": "reel-house",
+  "name": "VIRAL HOUSE CUT",
+  "category": "House / Hook",
+  "bpm": 126,
+  "key": 54,
+  "melody": [
+   0,
+   5,
+   7,
+   12
+  ],
+  "chord": [
+   0,
+   3,
+   7
+  ],
+  "style": "house",
+  "beat": true
+ },
+ {
+  "id": "amapiano",
+  "name": "AMAPIANO WAVE",
+  "category": "Amapiano / Lifestyle",
+  "bpm": 110,
+  "key": 53,
+  "melody": [
+   0,
+   4,
+   7,
+   11
+  ],
+  "chord": [
+   0,
+   4,
+   7
+  ],
+  "style": "afro",
+  "beat": true
+ },
+ {
+  "id": "ukg",
+  "name": "UK GARAGE SWING",
+  "category": "UK Garage / Street",
+  "bpm": 136,
+  "key": 57,
+  "melody": [
+   0,
+   3,
+   10,
+   7
+  ],
+  "chord": [
+   0,
+   3,
+   7
+  ],
+  "style": "house",
+  "beat": true
+ },
+ {
+  "id": "hardgroove",
+  "name": "HARD GROOVE DROP",
+  "category": "Techno / Fitness",
+  "bpm": 142,
+  "key": 50,
+  "melody": [
+   0,
+   7,
+   8,
+   3
+  ],
+  "chord": [
+   0,
+   3,
+   7
+  ],
+  "style": "electro",
+  "beat": true
+ },
+ {
+  "id": "reverb",
+  "name": "DREAM REVERB",
+  "category": "Ambient / Cinematic",
+  "bpm": 86,
+  "key": 60,
+  "melody": [
+   0,
+   7,
+   4,
+   12
+  ],
+  "chord": [
+   0,
+   4,
+   7
+  ],
+  "style": "ambient",
+  "beat": false
+ },
+ {
+  "id": "dramatic",
+  "name": "DRAMATIC EDIT CUT",
+  "category": "Trailer / Ad Hook",
+  "bpm": 118,
+  "key": 45,
+  "melody": [
+   0,
+   1,
+   6,
+   7
+  ],
+  "chord": [
+   0,
+   3,
+   7
+  ],
+  "style": "cinema",
+  "beat": true
+ },
+ {
+  "id": "luxury-club",
+  "name": "FASHION CLUB MIX",
+  "category": "Luxury / Runway",
+  "bpm": 123,
+  "key": 56,
+  "melody": [
+   0,
+   4,
+   9,
+   7
+  ],
+  "chord": [
+   0,
+   4,
+   7
+  ],
+  "style": "house",
+  "beat": true
+ },
+ {
+  "id": "trap-remix",
+  "name": "TRAP ENERGY SWITCH",
+  "category": "Trap / Transition",
+  "bpm": 150,
+  "key": 48,
+  "melody": [
+   0,
+   3,
+   7,
+   10
+  ],
+  "chord": [
+   0,
+   3,
+   7
+  ],
+  "style": "trap",
+  "beat": true
  }
 ];
 const SFX=[
