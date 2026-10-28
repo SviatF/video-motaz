@@ -147,12 +147,38 @@ function positionHead(){
  if(bar)bar.style.width=clamp(duration()>0?now/duration()*100:0,0,100).toFixed(2)+"%";
 }
 function field(label,id,value,opts=""){return '<div class="field"><label for="'+id+'">'+label+'</label><input id="'+id+'" value="'+h(value)+'" '+opts+'></div>';}
-function inspectorInput(id,fn){const el=$(id);if(el)el.addEventListener("change",()=>{const c=getSelected();if(!c)return;fn(c,el.value);persist();});}
+function inspectorInput(id,fn){const el=$(id);if(el)el.addEventListener("change",()=>{
+ const item=getSelected();if(!item)return;
+ const kind=selected?.kind,animatable=kind==="title"||kind==="sticker";
+ const before=animatable?PTSMotion.sample(item,kind,now):null;
+ fn(item,el.value);
+ if(animatable&&item.keyframes?.length){
+  const property=id==="prop-x"?"x":id==="prop-y"?"y":id==="prop-rotation"?"rotation":
+   id==="prop-scale"||id==="prop-size"?"scale":id==="prop-motion-opacity"?"opacity":null;
+  if(property){const field=property==="scale"?(kind==="title"?item.size:item.scale):item[property];
+   PTSMotion.put(item,kind,now,{...before,[property]:field});
+  }
+ }
+ persist();
+});}
 function renderInspector(){
  const node=$("inspector"),c=getSelected();
  if(!c){node.innerHTML='<p class="hint">Обери фрагмент на таймлайні, щоб налаштувати його параметри.</p>';return;}
  const labels={video:"ВІДЕО / ФОТО",title:"АНІМОВАНИЙ ТЕКСТ",caption:"СУБТИТРИ",audio:"АУДІО / ОЗВУЧКА",sticker:"НАЛІПКА / ЗАКЛИК",effect:"ВІДЕОЕФЕКТ",overlay:"ЕФЕКТ НА ВЕСЬ КАДР"};
  let html='<h3>'+(labels[selected.kind]||"ЕЛЕМЕНТ")+'</h3>';
+ const animatable=selected.kind==="title"||selected.kind==="sticker";
+ const display=animatable?PTSMotion.position(c,selected.kind,now):c;
+ if(animatable){
+  const keys=c.keyframes||[];
+  html+='<section class="keyframe-panel"><div class="keyframe-title">◆ КЛЮЧОВІ КАДРИ <small>'+keys.length+'</small></div>'+
+   '<p>Вибери час на шкалі, додай кадр і зміни положення елемента.</p>'+
+   '<div class="keyframe-buttons"><button type="button" id="key-prev" title="Попередній кадр">◀</button>'+
+   '<button type="button" id="key-add">◆ ДОДАТИ</button>'+
+   '<button type="button" id="key-next" title="Наступний кадр">▶</button>'+
+   '<button type="button" id="key-remove" title="Видалити поточний кадр">✕</button></div>'+
+   '<label class="keyframe-ease">ТИП РУХУ <select id="key-ease"><option value="smooth">Плавно</option><option value="linear">Лінійно</option><option value="ease-in">Прискорення</option><option value="ease-out">Гальмування</option></select></label>'+
+   '<div class="keyframe-list">'+keys.map(k=>'<button type="button" data-key-time="'+k.t+'">◆ '+fmt(k.t)+' с</button>').join('')+'</div></section>';
+ }
  if(selected.kind==="video"||selected.kind==="audio"){const m=getMedia(c.mediaId);html+='<div class="mini">'+h(m?.name||"Медіа недоступне")+'</div>';}
  const editableText=selected.kind==="title"||selected.kind==="caption"||(selected.kind==="sticker"&&["sale","shop","new"].includes(c.sticker));
  if(editableText)html+='<div class="field"><label for="prop-text">ТЕКСТ</label><textarea id="prop-text">'+h(c.text||"")+'</textarea></div>';
@@ -163,18 +189,18 @@ function renderInspector(){
   html+='<div class="field"><label for="prop-animation">АНІМАЦІЯ</label><select id="prop-animation">'+choices.map(([id,n])=>'<option value="'+id+'">'+(selected.kind==="sticker"?PTSUk.motion(id):n)+'</option>').join('')+'</select></div>';
  }
  if(selected.kind==="title"){
-  html+=field("ПОЗИЦІЯ X, %","prop-x",c.x??50,'type="number" min="0" max="100" step="1"');
-  html+=field("ПОВОРОТ, °","prop-rotation",c.rotation??0,'type="number" min="-360" max="360" step="5"');
-  html+=field("РОЗМІР ТЕКСТУ, %","prop-size",c.size,'type="number" min="2" max="20" step=".5"');
-  html+=field("ВИСОТА РОЗМІЩЕННЯ, %","prop-y",c.y,'type="number" min="5" max="95" step="1"');
+  html+=field("ПОЗИЦІЯ X, %","prop-x",display.x??50,'type="number" min="0" max="100" step="1"');
+  html+=field("ПОВОРОТ, °","prop-rotation",display.rotation??0,'type="number" min="-360" max="360" step="5"');
+  html+=field("РОЗМІР ТЕКСТУ, %","prop-size",display.size,'type="number" min="2" max="20" step=".5"');
+  html+=field("ВИСОТА РОЗМІЩЕННЯ, %","prop-y",display.y,'type="number" min="5" max="95" step="1"');
  }
  if(selected.kind==="sticker"){
   if(c.sticker==="emoji")html+=field("ЕМОДЗІ / СИМВОЛ","prop-emoji",c.emoji||"❤️",'type="text" maxlength="48"');
   html+=field("ШВИДКІСТЬ АНІМАЦІЇ","prop-speed",c.speed??1,'type="number" min=".25" max="4" step=".25"');
-  html+=field("ПОЗИЦІЯ X, %","prop-x",c.x,'type="number" min="0" max="100" step="1"');
+  html+=field("ПОЗИЦІЯ X, %","prop-x",display.x,'type="number" min="0" max="100" step="1"');
   html+=field("ПОЗИЦІЯ Y, %","prop-y",c.y,'type="number" min="0" max="100" step="1"');
-  html+=field("МАСШТАБ, %","prop-scale",c.scale,'type="number" min="3" max="90" step="1"');
-  html+=field("ПОВОРОТ, °","prop-rotation",c.rotation,'type="number" min="-360" max="360" step="5"');
+  html+=field("МАСШТАБ, %","prop-scale",display.scale,'type="number" min="3" max="90" step="1"');
+  html+=field("ПОВОРОТ, °","prop-rotation",display.rotation,'type="number" min="-360" max="360" step="5"');
   if(c.sticker!=="emoji")html+='<div class="field"><label for="prop-color">КОЛІР СТІКЕРА</label><input type="color" id="prop-color" value="'+h(c.color||"#ffffff")+'"></div>';
  }
  if(selected.kind==="overlay"){
@@ -195,6 +221,7 @@ function renderInspector(){
   html+='<div class="mini">'+h(PTSCreative.getEffect(c.effect)?.desc||"Ефект кадру")+'</div>';
   html+=field("ІНТЕНСИВНІСТЬ, %","prop-intensity",c.intensity,'type="number" min="0" max="150" step="5"');
  }
+ if(animatable)html+=field("ПРОЗОРІСТЬ, %","prop-motion-opacity",display.opacity??100,'type="number" min="0" max="100" step="5"');
  if(selected.kind!=="video")html+=field("ПОЧАТОК, СЕК","prop-start",fmt(c.start),'type="number" min="0" step=".1"');
  html+=field("ТРИВАЛІСТЬ, СЕК","prop-duration",fmt(c.duration),'type="number" min=".2" step=".1"');
  if(selected.kind==="video"||selected.kind==="audio")html+=field("ПОЧАТОК В ФАЙЛІ, СЕК","prop-trim",fmt(c.trim),'type="number" min="0" step=".1"');
@@ -205,6 +232,22 @@ function renderInspector(){
  if(selected.kind!=="video")html+='<div class="inspector-quick"><button type="button" id="fill-timeline" class="small-btn">↔ НА ВСЮ ДОВЖИНУ</button><button type="button" id="snap-begin" class="small-btn">|◀ НА ПОЧАТОК</button></div>';
  html+='<button class="small-btn" id="inspector-delete">✕ ВИДАЛИТИ ШАР</button>';node.innerHTML=html;
  if(editableText)inspectorInput("prop-text",(obj,v)=>obj.text=v);
+ if(animatable){
+  const kind=selected.kind;
+  $("key-add").onclick=()=>{const item=getSelected();if(!item)return;PTSMotion.put(item,kind,now);persist();toast("Ключовий кадр додано");};
+  $("key-remove").onclick=()=>{const item=getSelected();if(item&&PTSMotion.remove(item,now)){persist();toast("Ключовий кадр видалено");}};
+  const go=dir=>{const item=getSelected(),times=(item?.keyframes||[]).map(k=>item.start+k.t);
+   const t=dir>0?times.find(x=>x>now+.03):times.filter(x=>x<now-.03).pop();
+   if(t!==undefined){stop();seek(t);renderInspector();}
+  };
+  $("key-prev").onclick=()=>go(-1);$("key-next").onclick=()=>go(1);
+  node.querySelectorAll("[data-key-time]").forEach(b=>b.onclick=()=>{
+   const item=getSelected();if(!item)return;stop();seek(item.start+Number(b.dataset.keyTime));renderInspector();
+  });
+  $("key-ease").value=c.keyframeEase||"smooth";
+  $("key-ease").onchange=e=>{const item=getSelected();if(!item)return;item.keyframeEase=e.target.value;persist();};
+  inspectorInput("prop-motion-opacity",(obj,v)=>obj.opacity=clamp(num(v,100),0,100));
+ }
  if(selected.kind==="title"||selected.kind==="sticker"){$("prop-animation").value=c.animation;inspectorInput("prop-animation",(obj,v)=>obj.animation=v);}
  if(selected.kind==="title"){inspectorInput("prop-x",(obj,v)=>obj.x=clamp(num(v,obj.x??50),0,100));inspectorInput("prop-rotation",(obj,v)=>obj.rotation=clamp(num(v,obj.rotation??0),-360,360));inspectorInput("prop-size",(obj,v)=>obj.size=clamp(num(v,obj.size),2,20));inspectorInput("prop-y",(obj,v)=>obj.y=clamp(num(v,obj.y),5,95));}
  if(selected.kind==="sticker"){
