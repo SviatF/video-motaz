@@ -685,6 +685,18 @@ function stickerMotion(ctx,w,h,c,t){
  if(motion==="drift"){x+=Math.sin(p*1.5)*w*.025+(p%8)*w*.008;y-=p*h*.008;}
  if(motion==="flash")ctx.globalAlpha*=Math.sin(p*13)>0?1:.18;
  if(motion==="flip")scale*=Math.max(.12,Math.abs(Math.cos(p*3)));
+ if(motion==="rubber")scale*=1+.15*Math.sin(p*10)*Math.exp(-p*.4);
+ if(motion==="squash")scale*=.9+.12*Math.abs(Math.sin(p*7));
+ if(motion==="tada"){rotation+=Math.sin(p*16)*.18;scale*=1+.18*Math.max(0,Math.sin(p*8));}
+ if(motion==="shake-x")x+=Math.sin(p*34)*w*.023;
+ if(motion==="flip-y")rotation+=Math.PI*Math.sin(p*2);
+ if(motion==="rise")y-=ease((p%3)/3)*h*.16;
+ if(motion==="fall")y+=ease((p%3)/3)*h*.16;
+ if(motion==="breath")scale*=1+.06*Math.sin(p*2.4);
+ if(motion==="spiral"){x+=Math.cos(p*4)*w*.055*(1+p*.05);y+=Math.sin(p*4)*h*.034*(1+p*.05);}
+ if(motion==="glitch"){x+=(Math.floor(p*14)%3-1)*w*.021;y+=(Math.floor(p*13)%3-1)*h*.012;}
+ if(motion==="pendulum")rotation+=Math.sin(p*3)*.6;
+ if(motion==="wave-float"){y+=Math.sin(p*4)*h*.025;rotation+=Math.sin(p*3)*.15;}
  ctx.translate(x,y);ctx.rotate(rotation);ctx.scale(scale,scale);ctx.globalAlpha*=enter*exit;
 }
 function rounded(ctx,x,y,w,h,r,fill){
