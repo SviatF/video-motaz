@@ -167,6 +167,23 @@ const cases=[
           return {a,b,first};
         });
         if(!(overlayPixels.b>overlayPixels.a))issues.push('snow overlay did not draw visible pixels: '+JSON.stringify(overlayPixels));
+        const coverage=await page.evaluate(()=>{
+          const canvas=document.createElement('canvas');canvas.width=720;canvas.height=1280;
+          const ctx=canvas.getContext('2d',{willReadFrequently:true});
+          const kinds=['snow','snowstorm','fire','embers','rain','fog','lightleak','sparkles','confetti','hearts'];
+          return kinds.map(kind=>{
+            ctx.fillStyle='#090a0d';ctx.fillRect(0,0,720,1280);
+            window.PTSOverlays.draw(ctx,720,1280,{overlay:kind,start:0,duration:8,intensity:110,opacity:100,size:130,speed:1,seed:37},2.35);
+            function signal(y){
+              const image=ctx.getImageData(0,y,720,Math.floor(1280*.2)).data;let total=0;
+              for(let i=0;i<image.length;i+=16){total+=image[i]+image[i+1]+image[i+2]-32;}
+              return Math.round(total);
+            }
+            return {kind,top:signal(0),bottom:signal(1024)};
+          });
+        });
+        for(const x of coverage)if(x.top<100||x.bottom<100)issues.push('incomplete VFX frame coverage: '+JSON.stringify(x));
+
         await page.locator('#fill-timeline').click();
         const fullSnow=await page.evaluate(()=>JSON.parse(localStorage.getItem('pts-creative-project-v1')).overlays[0]);
         if(fullSnow.start!==0||fullSnow.duration<7.9)issues.push('snow overlay cannot fill composition');
@@ -178,11 +195,20 @@ const cases=[
         await page.locator('[data-select-overlay]').first().click();
         if(await page.locator('#prop-overlay-speed').inputValue()!=='2')issues.push('cannot select snow under fire in inspector');
 
-        await page.locator('#asset-search').fill('');
-                await page.locator('[data-library-tab="music"]').click();
+        // Music must be accessible even when the previous category was filtered.
+        await page.locator('#asset-search').fill('fire');
+        await page.locator('[data-library-tab="music"]').click();
+        if(await page.locator('#asset-search').inputValue()!=='')issues.push('music inherited old VFX search filter');
+        if(!await page.locator('[data-library-tab="music"]').isVisible())issues.push('music tab hidden');
+        if(!await page.locator('[data-library-tab="sfx"]').isVisible())issues.push('sound effects tab hidden');
+        if(await page.locator('[data-music]').count()!==36)issues.push('36 music tracks are not visible');
+        if(await page.locator('[data-sfx]').count()!==0)issues.push('sound effects still mixed into music');
         await page.locator('[data-music="pulse"]').click();
         try{await page.waitForFunction(()=>document.querySelectorAll('#audio-track .clip').length>0,{timeout:15000});}
         catch(e){issues.push('music was not imported to audio track: '+e.message);}
+        await page.locator('[data-library-tab="sfx"]').click();
+        if(await page.locator('[data-sfx]').count()!==12)issues.push('sound effects category should have 12 entries');
+        if(await page.locator('[data-music]').count()!==0)issues.push('music mixed into sound effects');
         await page.locator('[data-sfx="impact"]').click();
         try{await page.waitForFunction(()=>document.querySelectorAll('#audio-track .clip').length>=2,{timeout:15000});}
         catch(e){issues.push('SFX not added to audio track: '+e.message);}
