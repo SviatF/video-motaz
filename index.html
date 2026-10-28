@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0a0a0b">
+<meta name="description" content="PTS Creative Studio — безкоштовний онлайн-відеоредактор для рекламних креативів.">
+<title>PTS Creative Studio — Video Editor</title>
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+<div class="shell">
+<header class="topbar">
+  <div class="brand"><strong>PTS<span> COOPERATION</span></strong><small>CREATIVE STUDIO / VIDEO EDITOR</small></div>
+  <div class="project"><span>ПРОЄКТ /</span><input id="project-name" aria-label="Назва проєкту" value="Рекламний креатив 01"><span class="saved" id="save-status">Локальний проєкт</span></div>
+  <div class="top-actions"><button id="save-btn" class="ghost">ЗБЕРЕГТИ</button><button id="export-btn" class="primary">↗ ЕКСПОРТ ВІДЕО</button></div>
+</header>
+<section class="work">
+  <aside class="library">
+    <div class="panel-top"><span class="kicker">WORKSPACE / 01</span><h2>МЕДІАТЕКА<span>.</span></h2></div>
+    <label class="upload" id="drop-zone"><span class="upload-icon">＋</span><strong>ДОДАТИ МАТЕРІАЛИ</strong><small>Відео, фото, музика або голос</small><input type="file" id="file-input" accept="video/*,audio/*,image/*" multiple hidden></label>
+    <div class="inline-heading"><span>ФАЙЛИ ПРОЄКТУ</span><span id="asset-count">00</span></div>
+    <div class="asset-list" id="asset-list"><div class="empty">Завантаж матеріали, щоб розпочати монтаж.</div></div>
+    <div class="divider"></div>
+    <div class="inline-heading"><span>ІНСТРУМЕНТИ</span></div>
+    <div class="tools">
+      <button id="add-title" class="tool"><span>T</span><div><b>АНІМОВАНИЙ ТЕКСТ</b><small>Заголовки, CTA, рекламні плашки</small></div><i>＋</i></button>
+      <button id="add-caption" class="tool"><span>CC</span><div><b>СУБТИТРИ</b><small>Додати вручну</small></div><i>＋</i></button>
+      <label class="tool" for="srt-input"><span>SRT</span><div><b>ІМПОРТ СУБТИТРІВ</b><small>Точні таймкоди з файлу .srt</small></div><i>↗</i></label><input type="file" id="srt-input" accept=".srt,text/plain" hidden>
+      <button id="record-btn" class="tool"><span>●</span><div><b id="record-label">ЗАПИС ОЗВУЧКИ</b><small>Безкоштовно через мікрофон</small></div><i id="record-icon">＋</i></button>
+    </div>
+    <p class="hint">Медіафайли залишаються на пристрої. AI-транскрипція і синтез голосу ще не підключені.</p>
+  </aside>
+  <main class="stage">
+    <div class="stage-top"><div><span class="signal">●</span> LIVE PREVIEW <span class="dim">/ PTS MOTION ENGINE</span></div><div class="ratio"><label for="ratio">ФОРМАТ</label><select id="ratio"><option value="9:16">9:16 · REELS</option><option value="4:5">4:5 · FEED</option><option value="1:1">1:1 · SQUARE</option><option value="16:9">16:9 · LANDSCAPE</option></select></div></div>
+    <div class="stage-body"><div class="canvas-frame" id="canvas-frame"><canvas id="screen" width="720" height="1280" aria-label="Попередній перегляд"></canvas></div><div class="stage-caption">CREATIVE STUDIO <span>—</span> 100% LOCAL RENDER</div></div>
+    <div class="transport"><div class="transport-buttons"><button id="to-start" title="На початок">|◀</button><button id="play-btn" class="round" aria-label="Відтворити">▶</button><button id="forward" title="На секунду вперед">▶|</button></div><div class="time"><b id="current-time">00:00.0</b><span>/</span><span id="total-time">00:00.0</span></div><div class="transport-note">30 FPS <span>·</span> BROWSER ENGINE</div></div>
+  </main>
+  <aside class="properties"><div class="panel-top"><span class="kicker">PROPERTIES / 02</span><h2>ІНСПЕКТОР<span>.</span></h2></div><div id="inspector" class="inspector"><p class="hint">Обери фрагмент на таймлайні, щоб налаштувати його параметри.</p></div></aside>
+</section>
+<section class="timeline">
+  <div class="timeline-head"><div class="timeline-title">▤ <b>ТАЙМЛАЙН</b><small id="duration-label">00.0 SEC</small></div><div class="timeline-actions"><button id="split-btn">✂ РОЗРІЗАТИ</button><button id="left-btn" title="Перемістити раніше">←</button><button id="right-btn" title="Перемістити пізніше">→</button><button id="delete-btn">✕ ВИДАЛИТИ</button><label>ZOOM <input id="zoom" type="range" min="35" max="125" value="65"></label></div></div>
+  <div class="timeline-grid"><div class="track-labels"><div class="ruler-label">TRACKS</div><div>▣ <span>ВІДЕО / ФОТО</span></div><div>𝑻 <span>ТЕКСТ / CTA</span></div><div>☷ <span>СУБТИТРИ</span></div><div>♫ <span>АУДІО / VOICE</span></div></div><div class="track-scroll" id="track-scroll"><div id="track-inner" class="track-inner"><div class="ruler" id="ruler"></div><div class="track" id="video-track"></div><div class="track" id="text-track"></div><div class="track" id="caption-track"></div><div class="track" id="audio-track"></div><div class="playhead" id="playhead"><i></i></div></div></div></div>
+  <div class="timeline-foot"><span>LOCAL FIRST / NO SUBSCRIPTIONS</span><span>SPACE — PLAY / PAUSE &nbsp; · &nbsp; DELETE — REMOVE &nbsp; · &nbsp; CTRL+S — SAVE</span></div>
+</section>
+<div id="toast" class="toast" aria-live="polite"></div>
+<dialog id="export-dialog"><div class="dialog-inner"><div class="kicker">RENDER / 001</div><h2>ЕКСПОРТ КРЕАТИВУ<span>.</span></h2><p>Файл збирається в реальному часі в браузері. Тримай вкладку відкритою до завершення.</p><div class="export-facts"><div>РОЗДІЛЬНІСТЬ<strong id="export-resolution"></strong></div><div>ТРИВАЛІСТЬ<strong id="export-duration"></strong></div><div>ФОРМАТ<strong id="export-format"></strong></div></div><progress id="export-progress" value="0" max="100" hidden></progress><p id="export-message" class="small">MP4 доступний лише у браузерах із підтримкою відповідного кодека. Інакше — WebM.</p><div class="dialog-actions"><button id="cancel-export" class="ghost">ЗАКРИТИ</button><button id="start-export" class="primary">ПОЧАТИ ЕКСПОРТ ↗</button></div></div></dialog>
+<video id="video-source" playsinline preload="auto" hidden></video>
+</div>
+<script src="./app.js" defer></script>
+</body></html>
