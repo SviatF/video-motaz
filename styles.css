@@ -515,3 +515,48 @@ input[type="range"]{accent-color:#ececec}
  .asset-lib-toolbar{top:0}
 }
 @media (prefers-reduced-motion:reduce){.motion-icon,.emoji-item{animation:none!important;transition:none!important}}
+
+/* Timeline direct manipulation: selected blocks can be moved and resized. */
+.clip{display:flex;align-items:center;justify-content:space-between;gap:0;padding:0;touch-action:none;cursor:grab;user-select:none}
+.clip:active{cursor:grabbing}
+.clip-label{min-width:0;flex:1;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 3px;font-size:10px;pointer-events:none}
+.clip-handle{position:relative;flex:0 0 8px;align-self:stretch;min-width:8px;cursor:ew-resize;background:#ffffff15;border-radius:2px;z-index:2;touch-action:none}
+.clip-handle-left{border-right:1px solid #ffffff40}
+.clip-handle-right{border-left:1px solid #ffffff40}
+.clip:hover .clip-handle,.clip.selected .clip-handle{background:#ffffff50}
+.clip-handle:hover{background:#f3f3f3!important}
+.clip-handle::after{content:"";position:absolute;top:28%;bottom:28%;left:3px;width:2px;background:#cccccf;border-radius:1px}
+.clip:hover{z-index:4}
+.timeline-grid,.track-scroll{touch-action:pan-y}
+.timeline-actions button{transition:background .12s}
+
+/* Canvas selection is only an editing overlay and is never rendered into MP4/WebM. */
+.canvas-frame{position:relative;isolation:isolate}
+.selection-overlay{position:absolute;inset:0;z-index:3;pointer-events:none;overflow:visible}
+.selection-box{
+ position:absolute;
+ border:1.5px solid #f3f3f3;
+ background:#ffffff06;
+ outline:1px solid #0009;
+ box-shadow:0 0 0 1px #0009,0 0 16px #ffffff20;
+ transform:translate(-50%,-50%);
+ transform-origin:center;
+ cursor:move;touch-action:none;pointer-events:auto;user-select:none;
+}
+.selection-box[hidden]{display:none}
+.selection-box::before,.selection-box::after{content:"";position:absolute;width:6px;height:6px;background:#fff;border:1px solid #0d0e11;top:-4px;left:-4px;pointer-events:none}
+.selection-box::after{left:auto;right:-4px}
+.selection-name{
+ position:absolute;bottom:calc(100% + 5px);left:50%;transform:translateX(-50%);
+ padding:3px 6px;background:#ededee;color:#101114;border-radius:2px;
+ font-size:8px;white-space:nowrap;letter-spacing:.55px;font-weight:900;
+ pointer-events:none;
+}
+.transform-knob{
+ position:absolute;display:grid;place-items:center;z-index:5;border:1px solid #101114;background:#f8f8fa;color:#141518;
+ cursor:nwse-resize;pointer-events:auto;touch-action:none;
+ box-shadow:0 2px 9px #0009;
+}
+.resize-knob{right:-7px;bottom:-7px;width:14px;height:14px;border-radius:2px}
+.rotate-knob{top:-28px;right:-15px;width:18px;height:18px;border-radius:50%;font-size:13px;cursor:crosshair;line-height:1}
+.selection-box:hover{border-color:#fff;background:#ffffff12}
