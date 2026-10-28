@@ -329,6 +329,28 @@ const cases=[
       localStorage.setItem('pts-creative-project-v1',JSON.stringify(project));
     });
     await capPage.reload({waitUntil:'load'});
+    if(!await capPage.locator('#auto-caption-quality').count())throw Error('ASR quality picker missing');
+    if(await capPage.locator('#auto-caption-quality').inputValue()!=='balanced')throw Error('Upgraded Whisper Base is not the default');
+    const qualityTests=await capPage.evaluate(()=>{
+      const asr=window.PTSLocalSpeech;
+      const rejected=asr.inspectTranscript([
+        {text:' Thank you for watching this video.',start:.4,duration:1.5,words:[]},
+        {text:' To jest piękny zabieg.',start:2.1,duration:2,words:[]},
+        {text:' Thank you for watching this video.',start:15,duration:1.5,words:[]}
+      ]);
+      const boilerplateOnly=asr.inspectTranscript([{text:' Thank you for watching this video.',start:0,duration:2,words:[]}]);
+      return {
+        models:Object.keys(asr.MODELS),
+        rejected:rejected.warnings.length,
+        kept:rejected.captions.length,
+        keptText:rejected.captions[0]?.text,
+        only:boilerplateOnly.captions.length,
+        mode:asr.modelOptions('pl')
+      };
+    });
+    if(qualityTests.rejected!==2||qualityTests.kept!==1||qualityTests.only!==0||qualityTests.mode.language!=='polish'||qualityTests.models.length!==3){
+      throw Error('ASR hallucination filter or model selection failed: '+JSON.stringify(qualityTests));
+    }
     if(!(await capPage.locator('#auto-caption-language').count()))throw Error('Language selection is missing');
     if(await capPage.locator('#auto-caption-language').inputValue()!=='auto')throw Error('Auto language must be default');
     await capPage.locator('#auto-caption-language').selectOption('pl');
@@ -340,7 +362,7 @@ const cases=[
     await capPage.evaluate(()=>{
       const original=window.PTSLocalSpeech.transcribe;
       window.PTSLocalSpeech.transcribe=async(file,progress,opts)=>{
-        if(opts?.language!=='pl')throw Error('Polish language was not passed to ASR');
+        if(opts?.language!=='pl'||opts.quality!=='balanced')throw Error('Polish/Whisper Base selections not passed to ASR');
         const raw=await window.PTSLocalSpeech.decodeAudio(file,progress);
         const pcm=raw.samples;
         const rms=Math.sqrt(pcm.reduce((sum,n)=>sum+n*n,0)/Math.max(1,pcm.length));
