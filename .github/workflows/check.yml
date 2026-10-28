@@ -20,6 +20,7 @@ jobs:
           node --check emoji-catalog.js
           node --check creative-library-v2.js
           node --check fullscreen-overlays.js
+          node --check uk-localization.js
       - name: Build deploy directory
         run: bash build.sh
       - name: Smoke-check output
@@ -31,6 +32,7 @@ jobs:
           test -s dist/emoji-catalog.js
           test -s dist/creative-library-v2.js
           test -s dist/fullscreen-overlays.js
+          test -s dist/uk-localization.js
           test -s dist/_headers
           grep -q 'script src="./app.js"' dist/index.html
           grep -q 'id="screen"' dist/index.html
