@@ -749,3 +749,21 @@ dialog::backdrop{backdrop-filter:blur(5px)}
 .smart-captions-style{gap:5px;padding:7px 0 5px}
 .smart-captions-style select{min-height:35px}
 @media(prefers-reduced-motion:reduce){.smart-progress.smart-processing .smart-progress-dot{animation:none}}
+
+/* Video clip inspector: speech recognition belongs to the selected media,
+   not an always-visible and vertically overloaded sidebar. */
+.video-caption-panel{margin:20px 0 12px;padding:15px 12px 13px;border:1px solid #4c535c;border-radius:7px;background:linear-gradient(165deg,#25282e,#17191d 82%)}
+.caption-panel-heading{display:flex;align-items:center;gap:10px;padding-bottom:12px;margin-bottom:7px;border-bottom:1px solid #ffffff17}
+.caption-panel-heading>span{font-size:22px;color:#f2f3f4;flex:0 0 30px}
+.caption-panel-heading div{display:flex;flex-direction:column;gap:5px}
+.caption-panel-heading b{font-weight:850;font-size:12px;color:#fafafa;letter-spacing:.3px}
+.caption-panel-heading small{font-size:10px;color:#a7aab3;line-height:1.4}
+.video-caption-panel .smart-captions-style{margin:9px 0 2px}
+.video-caption-panel .asr-quality-note{font-size:10px;color:#a4a7b0;line-height:1.55;margin:4px 0 13px}
+.video-caption-panel #generate-captions{display:flex!important;align-items:center;min-height:51px;border:1px solid #c8cbd0!important;border-radius:5px;background:#e8e9ea!important;color:#15161a!important}
+.video-caption-panel #generate-captions:hover{background:#fff!important;box-shadow:0 0 14px #ffffff24}
+.video-caption-panel #generate-captions b,.video-caption-panel #generate-captions small,.video-caption-panel #generate-captions i{color:#14151a!important}
+.video-caption-panel .smart-progress{margin:12px 0 0!important}
+.video-caption-panel .caption-clear{display:block;width:100%;min-height:32px;padding:8px 6px;font-size:9px;font-weight:850;color:#c6c9d2;background:transparent;border:1px solid #464b54;border-radius:4px;margin:10px 0 0}
+.video-caption-panel .caption-clear:hover{color:#fff;border-color:#b4b8c0}
+.inspector{overflow-x:hidden}
