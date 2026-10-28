@@ -6,7 +6,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const root = path.resolve(__dirname, '../../dist');
-const files = {'/':'index.html','/index.html':'index.html','/app.js':'app.js','/creative-tools.js':'creative-tools.js','/styles.css':'styles.css'};
+const files = {'/':'index.html','/index.html':'index.html','/app.js':'app.js','/creative-tools.js':'creative-tools.js','/emoji-catalog.js':'emoji-catalog.js','/creative-library-v2.js':'creative-library-v2.js','/styles.css':'styles.css'};
 const types = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8'};
 const server = createServer((request,response)=>{
   const pathname = new URL(request.url, 'http://127.0.0.1').pathname;
@@ -63,10 +63,29 @@ const cases=[
       if(title===0) issues.push('adding text layer failed');
       // Check the newly added creative controls on the wide desktop.
       if(size.name==='desktop-reference'){
+        await page.locator('[data-workspace="creative"]').click();
+        if(!(await page.locator('#creative-view').isVisible()))issues.push('creative workspace not displayed');
+        const count=await page.evaluate(()=>window.PTSEmojis?.count);
+        if(count!==3963)issues.push('emoji catalog count incorrect: '+count);
+        if(await page.locator('.emoji-item').count()<60)issues.push('emoji grid did not render initial page');
+        await page.locator('#asset-search').fill('heart');
+        if(await page.locator('.emoji-item').count()<5)issues.push('search for hearts returned too few results');
+        await page.locator('.emoji-item').first().click();
+        if(await page.locator('#fx-track .clip.sticker').count()!==1)issues.push('emoji sticker not added to FX track');
+        if(await page.locator('#prop-emoji').count()!==1)issues.push('emoji inspector missing');
+        await page.locator('#prop-animation').selectOption('heartbeat');
+        await page.locator('#prop-speed').fill('1.75');
+        await page.locator('#prop-speed').dispatchEvent('change');
+        const afterMotion=await page.evaluate(()=>JSON.parse(localStorage.getItem('pts-creative-project-v1')||'{}').stickers||[]);
+        if(afterMotion[0]?.animation!=='heartbeat'||afterMotion[0]?.speed!==1.75)issues.push('emoji animation settings not persisted');
+        await page.locator('#asset-search').fill('');
         await page.locator('[data-library-tab="stickers"]').click();
         await page.locator('[data-sticker="sale"]').click();
-        if(await page.locator('#fx-track .clip.sticker').count()!==1)issues.push('sticker not added to FX track');
+        if(await page.locator('#fx-track .clip.sticker').count()!==2)issues.push('sticker not added to FX track');
         if(await page.locator('#prop-scale').count()!==1)issues.push('sticker inspector controls missing');
+        await page.locator('[data-library-tab="motions"]').click();
+        await page.locator('[data-motion="bounce"]').click();
+        if(await page.locator('#fx-track .clip.sticker').count()!==3)issues.push('motion preset did not add a sticker');
         await page.locator('[data-library-tab="effects"]').click();
         await page.locator('[data-effect="flash"]').click();
         if(await page.locator('#fx-track .clip.effect').count()!==1)issues.push('FX not added to timeline');
@@ -76,10 +95,10 @@ const cases=[
         try{await page.waitForFunction(()=>document.querySelectorAll('#audio-track .clip').length>0,{timeout:15000});}
         catch(e){issues.push('music was not imported to audio track: '+e.message);}
         const stored=await page.evaluate(()=>JSON.parse(localStorage.getItem('pts-creative-project-v1')||'{}'));
-        if(!stored.stickers?.length||!stored.effects?.length||!stored.audios?.length)issues.push('new layers not persisted');
+        if(stored.stickers?.length!==3||!stored.effects?.length||!stored.audios?.length)issues.push('new layers not persisted');
         await page.reload({waitUntil:'load'});
         await page.waitForTimeout(250);
-        if(await page.locator('#fx-track .clip.sticker').count()!==1)issues.push('sticker lost after reload');
+        if(await page.locator('#fx-track .clip.sticker').count()!==3)issues.push('sticker lost after reload');
         if(await page.locator('#fx-track .clip.effect').count()!==1)issues.push('FX lost after reload');
         if(await page.locator('#audio-track .clip').count()!==1)issues.push('music lost after reload');
       }
