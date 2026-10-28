@@ -607,3 +607,15 @@ input[type="range"]{accent-color:#ececec}
 .overlay-layer-list button{display:flex;align-items:center;justify-content:space-between;gap:6px;width:100%;min-height:32px;background:#222832;border:1px solid #414954;color:#e4eaf2;border-radius:3px;padding:7px 9px;text-align:left;font-size:10px}
 .overlay-layer-list button.current{border-color:#e0e9f5;background:#364154}
 .overlay-layer-list button span{font-size:9px;color:#b5bdcb}
+
+/* Library usability: all seven asset categories always visible, no hidden Music tab. */
+.asset-lib-nav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;overflow:visible;padding-bottom:11px}
+.asset-lib-nav button{min-width:0;font-size:9px;letter-spacing:.2px;white-space:normal;line-height:1.25;min-height:35px;padding:7px 3px}
+.licensed-music-links{display:grid;grid-template-columns:1fr;gap:6px;margin:11px 0}
+.licensed-music-links a{display:flex;align-items:center;min-height:35px;background:#25282d;border:1px solid #565960;border-radius:4px;padding:8px 10px;text-decoration:none;color:#f4f4f4;font-size:10px;font-weight:750}
+.licensed-music-links a:hover{background:#373a41;border-color:#b6b6bf}
+.music-license-note,.music-info{font-size:10px;line-height:1.55;color:#a4aab4;padding:0 2px;margin:8px 0}
+.music-info{color:#e0e0e2}
+.library-expanded .asset-lib-nav{grid-template-columns:repeat(4,minmax(0,1fr))}
+.library-expanded .asset-lib-nav button{min-height:39px}
+@media(max-width:680px){.asset-lib-nav{grid-template-columns:repeat(3,minmax(0,1fr))}.library-expanded .asset-lib-nav{grid-template-columns:repeat(3,minmax(0,1fr))}}
