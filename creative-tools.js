@@ -12,7 +12,26 @@ const STICKERS=[
  {id:"star",name:"Starburst",symbol:"★",group:"SHAPES"},
  {id:"heart",name:"Heart",symbol:"♥",group:"SHAPES"},
  {id:"check",name:"Verified",symbol:"✓",group:"SHAPES"},
- {id:"sparkles",name:"Sparkles",symbol:"✧",group:"SHAPES"}];
+ {id:"sparkles",name:"Sparkles",symbol:"✧",group:"SHAPES"},
+ {id:"badge",name:"Best Seller",symbol:"BEST",group:"AD BADGES"},
+ {id:"bubble",name:"Speech Bubble",symbol:"💬",group:"SOCIAL"},
+ {id:"price",name:"Price Drop",symbol:"$ ↓",group:"AD BADGES"},
+ {id:"free",name:"FREE SHIPPING",symbol:"FREE",group:"AD BADGES"},
+ {id:"notification",name:"Notification",symbol:"🔔",group:"SOCIAL"},
+ {id:"comment",name:"New Comment",symbol:"♥",group:"SOCIAL"},
+ {id:"countdown",name:"Countdown",symbol:"03",group:"CTA"},
+ {id:"click",name:"Tap Here",symbol:"☝",group:"CTA"},
+ {id:"arrow-down",name:"Arrow Down",symbol:"↓",group:"CTA"},
+ {id:"double-arrow",name:"Swipe Arrows",symbol:"»",group:"CTA"},
+ {id:"play",name:"Play Button",symbol:"▶",group:"CTA"},
+ {id:"crown",name:"Premium Crown",symbol:"♛",group:"LUXURY"},
+ {id:"gift",name:"Gift Box",symbol:"🎁",group:"LIFESTYLE"},
+ {id:"fire",name:"Flame",symbol:"🔥",group:"LIFESTYLE"},
+ {id:"ring",name:"Highlight Ring",symbol:"◉",group:"SHAPES"},
+ {id:"progress",name:"Loading Ring",symbol:"◌",group:"SHAPES"},
+ {id:"burst",name:"Impact Burst",symbol:"✺",group:"SHAPES"},
+ {id:"underline",name:"Underline",symbol:"＿",group:"SHAPES"},
+ {id:"location",name:"Map Pin",symbol:"⌖",group:"SHAPES"}];
 const EFFECTS=[
  {id:"flash",name:"Flash Cut",desc:"Світловий спалах",symbol:"✺",duration:1},
  {id:"shake",name:"Impact Shake",desc:"Кінематографічний поштовх",symbol:"⌁",duration:2},
@@ -21,7 +40,15 @@ const EFFECTS=[
  {id:"vignette",name:"Dark Vignette",desc:"Фокус на центрі",symbol:"◎",duration:5},
  {id:"mono",name:"Monochrome",desc:"Чорно-біла експозиція",symbol:"◑",duration:4},
  {id:"letterbox",name:"Cinema Bars",desc:"Кіношні чорні смуги",symbol:"▰",duration:4},
- {id:"sweep",name:"Light Sweep",desc:"Світловий прохід",symbol:"╱",duration:2}];
+ {id:"sweep",name:"Light Sweep",desc:"Світловий прохід",symbol:"╱",duration:2},
+ {id:"contrast",name:"Sharp Contrast",desc:"Високий контраст",symbol:"◐",duration:3},
+ {id:"blur",name:"Dream Blur",desc:"Плавна м'якість",symbol:"◌",duration:3},
+ {id:"sepia",name:"Vintage Film",desc:"Сепія",symbol:"⌘",duration:4},
+ {id:"invert",name:"Negative Cut",desc:"Інверсія кольору",symbol:"◩",duration:1},
+ {id:"strobe",name:"Strobe Pulse",desc:"Ритмічний строб",symbol:"✳",duration:2},
+ {id:"glow",name:"Soft Glow",desc:"М'яке світіння",symbol:"☼",duration:3},
+ {id:"fade-black",name:"Fade to Black",desc:"Затемнення",symbol:"◕",duration:2},
+ {id:"cool",name:"Cool Tone",desc:"Холодна експозиція",symbol:"❄",duration:4}];
 const MUSIC=[
  {id:"pulse",name:"CINEMATIC PULSE",category:"Action / Ads",bpm:120,key:52,melody:[0,3,7,10],chord:[0,3,7],beat:true},
  {id:"luxury",name:"LUXURY MINIMAL",category:"Beauty / Fashion",bpm:92,key:57,melody:[0,7,5,3],chord:[0,4,7],beat:false},
@@ -77,20 +104,27 @@ function stopPreview(){
  if(previewObjectUrl){URL.revokeObjectURL(previewObjectUrl);previewObjectUrl=null;}
 }
 function stickerMotion(ctx,w,h,c,t){
- const local=Math.max(0,t-c.start);
- const total=Math.max(.01,c.duration);
- const enter=ease(local/.22),exit=ease((total-local)/.25);
- const scale=clamp((c.scale||18)/20,.22,4);
- let x=w*(c.x??50)/100,y=h*(c.y??50)/100;
- let f=scale,angle=(c.rotation||0)*Math.PI/180;
+ const total=Math.max(.01,c.duration),local=Math.max(0,t-c.start);
+ const speed=clamp(c.speed??1,.25,4),p=local*speed,enter=ease(local/.2),exit=ease((total-local)/.2);
+ let scale=clamp((c.scale||18)/20,.15,5),x=w*(c.x??50)/100,y=h*(c.y??50)/100,rotation=(c.rotation||0)*Math.PI/180;
  const motion=c.animation||"pop";
- if(motion==='pop')f*=.55+.45*enter;
- if(motion==='bounce')f*=.9+.18*Math.abs(Math.sin(local*11));
- if(motion==='pulse')f*=1+.09*Math.sin(local*7.5);
- if(motion==='spin')angle+=Math.PI*2*local/2;
- if(motion==='float')y+=Math.sin(local*4)*h*.012;
- if(motion==='slide')x+=(1-enter)*w*.28;
- ctx.translate(x,y);ctx.rotate(angle);ctx.scale(f,f);ctx.globalAlpha*=enter*exit;
+ if(motion==="pop")scale*=.52+.48*enter;
+ if(motion==="bounce"){const jump=Math.abs(Math.sin(p*5.5));y-=Math.pow(jump,1.5)*h*.065;scale*=1+.085*Math.cos(p*11);}
+ if(motion==="heartbeat"){const beat=Math.pow(Math.max(0,Math.sin(p*5)),6);scale*=1+beat*.32;}
+ if(motion==="bounce-in"){const spring=Math.exp(-p*3)*Math.cos(p*11);scale*=clamp(1-spring,.08,1.42);}
+ if(motion==="pulse")scale*=1+.1*Math.sin(p*6);
+ if(motion==="spin")rotation+=p*Math.PI*1.6;
+ if(motion==="float")y+=Math.sin(p*3.2)*h*.025;
+ if(motion==="slide")x+=(1-enter)*w*.28;
+ if(motion==="jitter"){x+=Math.sin(p*42)*w*.009;y+=Math.cos(p*55)*h*.009;}
+ if(motion==="swing")rotation+=Math.sin(p*4)*.33;
+ if(motion==="wave")rotation+=Math.sin(p*9)*.23;
+ if(motion==="orbit"){x+=Math.cos(p*3)*w*.075;y+=Math.sin(p*3)*h*.048;}
+ if(motion==="rain"){y+=((p*.42)%1)*h*.5-h*.25;}
+ if(motion==="drift"){x+=Math.sin(p*1.5)*w*.025+(p%8)*w*.008;y-=p*h*.008;}
+ if(motion==="flash")ctx.globalAlpha*=Math.sin(p*13)>0?1:.18;
+ if(motion==="flip")scale*=Math.max(.12,Math.abs(Math.cos(p*3)));
+ ctx.translate(x,y);ctx.rotate(rotation);ctx.scale(scale,scale);ctx.globalAlpha*=enter*exit;
 }
 function rounded(ctx,x,y,w,h,r,fill){
  ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fillStyle=fill;ctx.fill();
@@ -100,6 +134,12 @@ function drawSticker(ctx,w,h,c,t){
  ctx.save();stickerMotion(ctx,w,h,c,t);
  const size=S*.28,white=c.color||'#ffffff',dark='#090909';
  ctx.lineJoin='round';ctx.lineCap='round';
+ if(type==='emoji'){
+  ctx.font='Math.round(size*.78)px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif';
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText(c.emoji||"❤️",0,0);
+  ctx.restore();return;
+ }
  if(type==='sale'||type==='shop'||type==='new'){
   const text=c.text||({sale:'−50% OFF',shop:'SHOP NOW ↗',new:'NEW DROP'}[type]);
   ctx.font='900 '+Math.round(size*.23)+'px Arial, sans-serif';
@@ -117,6 +157,24 @@ function drawSticker(ctx,w,h,c,t){
  }else if(type==='heart'){
   ctx.fillStyle=white;ctx.beginPath();ctx.moveTo(0,size*.28);ctx.bezierCurveTo(-size*.7,-size*.06,-size*.43,-size*.55,0,-size*.22);
   ctx.bezierCurveTo(size*.43,-size*.55,size*.7,-size*.06,0,size*.28);ctx.fill();
+ }else if(type!=='check'){
+  const preset=getSticker(type);
+  if(preset){
+   const label=preset.symbol;
+   ctx.fillStyle=white;ctx.textAlign='center';ctx.textBaseline='middle';
+   if(['ring','progress','burst'].includes(type)){
+    ctx.strokeStyle=white;ctx.lineWidth=size*.046;
+    ctx.beginPath();ctx.arc(0,0,size*.32,0,Math.PI*2*(type==='progress'?.72:1));ctx.stroke();
+    if(type==='burst'){ctx.font='900 '+Math.round(size*.22)+'px Arial';ctx.fillText("✺",0,0);}
+   }else if(type==='underline'){
+    ctx.strokeStyle=white;ctx.lineWidth=size*.05;ctx.beginPath();ctx.moveTo(-size*.4,0);ctx.lineTo(size*.4,0);ctx.stroke();
+   }else{
+    const fontsize=Math.round(size*.25);ctx.font='900 '+fontsize+'px "Segoe UI Emoji", Arial, sans-serif';
+    const tw=ctx.measureText(label).width;
+    rounded(ctx,-tw/2-18,-size*.20,tw+36,size*.41,9,'#ffffff');
+    ctx.fillStyle=dark;ctx.fillText(label,0,0);
+   }
+  }
  }else if(type==='check'){
   ctx.fillStyle=white;ctx.beginPath();ctx.arc(0,0,size*.38,0,Math.PI*2);ctx.fill();
   ctx.strokeStyle=dark;ctx.lineWidth=size*.09;ctx.beginPath();ctx.moveTo(-size*.18,0);ctx.lineTo(-size*.03,size*.16);ctx.lineTo(size*.20,-size*.16);ctx.stroke();
