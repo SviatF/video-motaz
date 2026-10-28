@@ -94,14 +94,14 @@ function makePanel(node,actions){
    return;
   }
   if(state.tab==="stickers"){
-   const list=tools.STICKERS.filter(s=>matches(s.id+" "+s.name+" "+s.group));
+   const list=tools.STICKERS.filter(s=>matches(s.id+" "+(s._searchEnglish||"")+" "+s.name+" "+s.group));
    results.innerHTML=header("ВЕКТОРНІ НАЛІПКИ","СТІКЕРИ · "+list.length,"Додаються на таймлайн")+
     '<div class="sticker-grid">'+list.map(s=>'<button type="button" class="sticker-tile" data-sticker="'+s.id+'"><span class="sticker-art">'+safe(s.symbol)+'</span><b>'+safe(s.name)+'</b><small>'+safe(s.group)+'</small></button>').join('')+'</div>';
    results.querySelectorAll("[data-sticker]").forEach(b=>b.onclick=()=>actions.addSticker(b.dataset.sticker));
    return;
   }
   if(state.tab==="overlays"){
-   const list=global.PTSOverlays.PRESETS.filter(p=>matches(p.id+" "+p.name+" "+p.desc+" "+p.tag));
+   const list=global.PTSOverlays.PRESETS.filter(p=>matches(p.id+" "+(p._searchEnglish||"")+" "+p.name+" "+p.desc+" "+p.tag));
    results.innerHTML=header("АНІМАЦІЇ НА ВЕСЬ КАДР","ЕФЕКТІВ КАДРУ · "+list.length,"На весь екран / Поверх кадру")+
     '<p class="motion-hint">Сніг, полум’я, туман, світлові частинки й атмосферні ефекти. Обери, щоб додати як окрему доріжку з регулюванням інтенсивності.</p>'+
     '<div class="overlay-grid">'+list.map(p=>'<button type="button" class="overlay-tile" data-overlay="'+p.id+'"><span class="overlay-thumbnail"><canvas class="overlay-thumb" width="192" height="108" data-thumb="'+p.id+'"></canvas><i>'+p.icon+'</i></span><span class="overlay-copy"><b>'+safe(p.name)+'</b><small>'+safe(p.desc)+'</small></span><em>＋</em></button>').join('')+'</div>';
@@ -114,7 +114,7 @@ function makePanel(node,actions){
    return;
   }
   if(state.tab==="effects"){
-   const list=tools.EFFECTS.filter(s=>matches(s.id+" "+s.name+" "+s.desc));
+   const list=tools.EFFECTS.filter(s=>matches(s.id+" "+(s._searchEnglish||"")+" "+s.name+" "+s.desc));
    results.innerHTML=header("РУХ І ОБРОБКА КАДРУ","ЕФЕКТІВ · "+list.length,"Редагуй в інспекторі")+
     '<div class="fx-grid">'+list.map(s=>'<button type="button" class="fx-tile" data-effect="'+s.id+'"><span>'+safe(s.symbol)+'</span><div><b>'+safe(s.name)+'</b><small>'+safe(s.desc)+'</small></div><em>＋</em></button>').join('')+'</div>';
    results.querySelectorAll("[data-effect]").forEach(b=>b.onclick=()=>actions.addEffect(b.dataset.effect));
@@ -122,7 +122,7 @@ function makePanel(node,actions){
   }
   const isSound=state.tab==="sfx";
   if(!isSound){
-   const list=tools.MUSIC.filter(s=>matches(s.id+" "+s.name+" "+s.category+" "+s.bpm));
+   const list=tools.MUSIC.filter(s=>matches(s.id+" "+(s._searchEnglish||"")+" "+s.name+" "+s.category+" "+s.bpm));
    results.innerHTML=header("АВТОРСЬКА МУЗИКА / БІБЛІОТЕКА","МУЗИКА · "+tools.MUSIC.length+" ТРЕКІВ","Прослуховування та додавання → таймлайн")+
     '<div class="music-info">36 авторських музичних лупів. Для реальних треків, які ліцензовані для реклами, скористайся офіційними каталогами нижче та перевір дозволені платформи.</div>'+
     '<div class="licensed-music-links"><a href="https://ads.tiktok.com/resources/help/article/how-to-use-the-commercial-music-library?lang=en" target="_blank" rel="noopener noreferrer">TikTok · Музика для реклами ↗</a><a href="https://www.facebook.com/sound/collection/" target="_blank" rel="noopener noreferrer">Meta · Звукова бібліотека ↗</a></div>'+
@@ -130,7 +130,7 @@ function makePanel(node,actions){
     '<div class="fx-grid">'+list.map(s=>'<div class="music-card"><button type="button" class="music-preview" aria-label="Прослухати '+safe(s.name)+'" data-preview="'+s.id+'">▶</button><span class="creative-text"><b>'+safe(s.name)+'</b><small>'+safe(s.category)+' · '+s.bpm+' BPM</small></span><button type="button" class="music-add" data-music="'+s.id+'" aria-label="Додати '+safe(s.name)+'">＋</button></div>').join('')+'</div>'+
     (!list.length?'<p class="asset-empty">Немає збігів. Очисти пошук, щоб побачити всі треки.</p>':'');
   } else {
-   const list=tools.SFX.filter(s=>matches(s.id+" "+s.name+" "+s.category));
+   const list=tools.SFX.filter(s=>matches(s.id+" "+(s._searchEnglish||"")+" "+s.name+" "+s.category));
    results.innerHTML=header("ЗВУКОВЕ ОФОРМЛЕННЯ","ЗВУКОВІ ЕФЕКТИ · "+tools.SFX.length,"Прольоти · Хлопки · Удари · Сповіщення")+
     '<div class="music-info">Окрема бібліотека коротких звукових акцентів, переходів, ударів і повідомлень.</div>'+
     '<div class="fx-grid">'+list.map(s=>'<div class="music-card"><button type="button" class="music-preview" data-sfx-preview="'+s.id+'" aria-label="Прослухати '+safe(s.name)+'">▶</button><span class="creative-text"><b>'+safe(s.name)+'</b><small>'+safe(s.category)+' · '+s.seconds+' s</small></span><button type="button" class="music-add" data-sfx="'+s.id+'" aria-label="Додати '+safe(s.name)+'">＋</button></div>').join('')+'</div>'+
