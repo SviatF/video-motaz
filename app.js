@@ -57,7 +57,7 @@ async function importFiles(files){
   else{const item={id:uid(),mediaId:id,start:videoEnd(),duration:kind==="image"?5:secs,trim:0};state.clips.push(item);selected={kind:"video",id:item.id};}
   count++;
  }
- if(count){persist();toast("Додано файлів: "+count);}
+ if(count){persist();const imported=selected?.kind==="video"?getSelected():null;if(imported&&$("smart-audio-source"))$("smart-audio-source").value=imported.mediaId;toast("Додано файлів: "+count);}
 }
 function renderAssets(){
  const el=$("asset-list");$("asset-count").textContent=String(state.media.length).padStart(2,"0");
@@ -65,7 +65,7 @@ function renderAssets(){
  if(source){
   const current=source.value;
   const eligible=state.media.filter(m=>m.kind==="audio"||m.kind==="video");
-  source.innerHTML=eligible.length?eligible.map(m=>'<option value="'+h(m.id)+'">'+h(m.name)+'</option>').join(""):'<option value="">Спочатку додай аудіофайл</option>';
+  source.innerHTML=eligible.length?eligible.map(m=>'<option value="'+h(m.id)+'">'+h(m.name)+'</option>').join(""):'<option value="">Додай відео або аудіо</option>';
   if(eligible.some(m=>m.id===current))source.value=current;
  }
  if(!state.media.length){el.innerHTML='<div class="empty">Завантаж матеріали, щоб розпочати монтаж.</div>';return;}
@@ -637,7 +637,7 @@ async function importSrt(file){
 }
 function sourceFile(){
  const id=$("smart-audio-source")?.value,meta=getMedia(id);
- if(!meta||!assetUrls.has(id))throw Error("Спочатку обери звуковий файл у медіатеці.");
+ if(!meta||!assetUrls.has(id))throw Error("Спочатку вибери відео або аудіофайл у медіатеці.");
  return {id,meta,url:assetUrls.get(id)};
 }
 function smartStatus(message){const el=$("smart-progress");if(el)el.textContent=message;}
@@ -674,19 +674,60 @@ function cutBeats(){
 }
 async function generateCaptions(){
  const button=$("generate-captions");button.disabled=true;
+ const original=button.querySelector("b")?.textContent;
+ if(button.querySelector("b"))button.querySelector("b").textContent="ОБРОБКА ГОЛОСУ…";
  try{
+  stop();
   const source=sourceFile();
-  if(source.meta.kind!=="audio")throw Error("Для локального Whisper обери аудіофайл WAV, MP3 або M4A. Розпізнавання напряму з відео поки не підтримується.");
-  const file=await(await fetch(source.url)).blob();
+  const isVideo=source.meta.kind==="video";
+  if(isVideo)smartStatus("Підготовка відеодоріжки. Далі звук записуватиметься локально в реальному часі.");
+  else smartStatus("Підготовка аудіофайлу…");
+  const file=isVideo
+   ?await PTSVideoAudio.audioFromVideo(source.url,{limit:600,onProgress:smartStatus})
+   :await(await fetch(source.url)).blob();
   const items=await PTSLocalSpeech.transcribe(file,smartStatus);
-  if(!items.length)throw Error("Розпізнаних фраз немає. Спробуй чіткіший запис.");
-  const clip=state.audios.find(x=>x.mediaId===source.id),shift=clip?.start||0,trim=clip?.trim||0;
-  const newCaptions=items.map(c=>({id:uid(),start:Math.max(0,+(c.start-trim+shift).toFixed(3)),duration:c.duration,text:c.text,style:"highlight"}));
-  state.captions.push(...newCaptions);selected={kind:"caption",id:newCaptions[0].id};
-  persist();smartStatus("Готово! Створено "+newCaptions.length+" фрагментів. Перевір текст і таймкоди перед публікацією.");
-  toast("Локальні субтитри додано: "+newCaptions.length);
- }catch(e){console.error("Whisper transcription",e);smartStatus("Не вдалося створити субтитри: "+e.message);toast("Помилка локального розпізнавання");}
- finally{button.disabled=false;}
+  if(!items.length)throw Error("Whisper не визначив мовлення. Переконайся, що у відео є чіткий голос.");
+  // Place timestamps relative to the actual timeline clip, not to 00:00
+  // of the source, so re-ordered and trimmed video stays synchronized.
+  const clips=isVideo?state.clips:state.audios;
+  const linked=clips.filter(c=>c.mediaId===source.id);
+  const active=(selected&&(selected.kind==="video"||selected.kind==="audio"))
+   ?linked.find(c=>c.id===selected.id):null;
+  const target=active||linked[0]||{start:0,trim:0,duration:source.meta.duration};
+  const shift=target.start||0,trim=target.trim||0,end=trim+target.duration;
+  const style=$("auto-caption-style")?.value||"highlight";
+  const generated=[];
+  for(const c of items){
+   const rangeStart=Math.max(trim,c.start),rangeEnd=Math.min(end,c.start+c.duration);
+   if(rangeEnd<=rangeStart+.05)continue;
+   const words=(c.words||[]).filter(w=>w.end>trim&&w.start<end).map(w=>({
+    text:w.text,start:+(shift+Math.max(0,w.start-trim)).toFixed(3),
+    end:+(shift+Math.max(0,Math.min(end,w.end)-trim)).toFixed(3)
+   }));
+   const text=words.length?words.map(w=>w.text).join(" "):c.text;
+   generated.push({
+    id:uid(),start:+(shift+rangeStart-trim).toFixed(3),
+    duration:+(rangeEnd-rangeStart).toFixed(3),text,style,
+    words,sourceId:source.id,automatic:true
+   });
+  }
+  if(!generated.length)throw Error("Мовлення не потрапляє в обраний відеофрагмент. Перевір обрізання кліпу.");
+  state.captions.push(...generated);
+  selected={kind:"caption",id:generated[0].id};
+  persist();seek(generated[0].start+.05);
+  const exact=generated.some(c=>c.words.length);
+  smartStatus("Готово: "+generated.length+" фрагментів. "+
+    (exact?"Підсвічування синхронізовано з часовими позначками слів. ":"Доступні лише таймкоди фраз. ")+
+    "Перевір текст перед публікацією.");
+  toast("Автосубтитри створено: "+generated.length+" фрагментів");
+ }catch(e){
+  console.error("Auto subtitles",e);
+  smartStatus("Не вдалося створити субтитри: "+e.message);
+  toast("Помилка автосубтитрів: "+e.message);
+ }finally{
+  button.disabled=false;
+  if(button.querySelector("b"))button.querySelector("b").textContent=original||"АВТОСУБТИТРИ З ВІДЕО · ШІ";
+ }
 }
 function exportSettings(){
  const choices=["video/mp4;codecs=avc1.42E01E,mp4a.40.2","video/mp4;codecs=avc1.42E01E","video/mp4","video/webm;codecs=vp9,opus","video/webm;codecs=vp9","video/webm;codecs=vp8,opus","video/webm"];
