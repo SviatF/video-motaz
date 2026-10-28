@@ -190,6 +190,10 @@ function inspectorInput(id,fn){const el=$(id);if(el)el.addEventListener("change"
  }
  persist();
 });}
+const ASR_PREFS_KEY="pts-asr-prefs-v1";
+let asrPrefs=(()=>{try{return {...{language:"auto",quality:"balanced",style:"highlight"},...JSON.parse(localStorage.getItem(ASR_PREFS_KEY)||"{}")};}catch(_){return {language:"auto",quality:"balanced",style:"highlight"};}})();
+let asrLastStatus="",asrLastSummary="";
+function saveAsrPrefs(){try{localStorage.setItem(ASR_PREFS_KEY,JSON.stringify(asrPrefs));}catch(_){}}
 function renderInspector(){
  const node=$("inspector"),c=getSelected();
  if(!c){node.innerHTML='<p class="hint">Обери фрагмент на таймлайні, щоб налаштувати його параметри.</p>';return;}
@@ -284,6 +288,25 @@ function renderInspector(){
  }
  if(selected.kind!=="video")html+='<div class="inspector-quick"><button type="button" id="fill-timeline" class="small-btn">↔ НА ВСЮ ДОВЖИНУ</button><button type="button" id="snap-begin" class="small-btn">|◀ НА ПОЧАТОК</button></div>';
  html+='<button class="small-btn" id="inspector-delete">✕ ВИДАЛИТИ ШАР</button>';node.innerHTML=html;
+ if(selected.kind==="video"||selected.kind==="audio"){
+  node.appendChild($("video-caption-template").content.cloneNode(true));
+  for(const [key,id] of [["language","auto-caption-language"],["quality","auto-caption-quality"],["style","auto-caption-style"]]){
+   const el=$(id);el.value=asrPrefs[key];
+   el.onchange=()=>{asrPrefs[key]=el.value;saveAsrPrefs();};
+  }
+  $("generate-captions").onclick=generateCaptions;
+  if(asrLastStatus)smartStatus(asrLastStatus);
+  if(asrLastSummary){$("caption-summary").hidden=false;$("caption-summary").textContent=asrLastSummary;}
+  const clear=$("clear-auto-captions");
+  if(clear)clear.onclick=()=>{
+   const c=getSelected(),sourceId=c?.mediaId;if(!sourceId)return;
+   const before=state.captions.length;
+   state.captions=state.captions.filter(x=>!(x.automatic&&x.sourceId===sourceId));
+   state.captionRegions=(state.captionRegions||[]).filter(x=>x.sourceId!==sourceId);
+   asrLastSummary="";asrLastStatus="";
+   persist();toast("Видалено автосубтитри: "+(before-state.captions.length));
+  };
+ }
  if(editableText)inspectorInput("prop-text",(obj,v)=>{obj.text=v;if(selected.kind==="caption")obj.words=[];});
  if(animatable){
   const kind=selected.kind;
@@ -736,14 +759,15 @@ async function importSrt(file){
  if(count){selected={kind:"caption",id:state.captions[state.captions.length-1].id};persist();toast("Імпортовано субтитрів: "+count);}else toast("SRT не містить коректних таймкодів.");
 }
 function sourceFile(){
- const id=$("smart-audio-source")?.value,meta=getMedia(id);
+ const selectedClip=selected&&(selected.kind==="video"||selected.kind==="audio")?getSelected():null;
+ const id=selectedClip?.mediaId||$("smart-audio-source")?.value,meta=getMedia(id);
  if(!meta||!assetUrls.has(id))throw Error("Спочатку вибери відео або аудіофайл у медіатеці.");
  return {id,meta,url:assetUrls.get(id)};
 }
 function smartStatus(message){
  const widget=$("smart-progress"),label=$("smart-progress-message"),title=$("smart-progress-title");
  if(!widget||!label||!title)return;
- const str=String(message||"");
+ const str=String(message||"");asrLastStatus=str;
  const progress=str.match(/(\d{1,3})\s*%/);
  const loading=/завантаження|розпізнавання|витягування|підготовка|декодування|уточнення/i.test(str);
  const error=/помилка|не вдалося|не підтрим/i.test(str);
@@ -797,8 +821,8 @@ async function generateCaptions(){
   const file=isVideo
    ?await PTSVideoAudio.audioFromVideo(source.url,{limit:600,onProgress:smartStatus})
    :await(await fetch(source.url)).blob();
-  const language=$("auto-caption-language")?.value||"auto";
-  const quality=$("auto-caption-quality")?.value||"balanced";
+  const language=$("auto-caption-language")?.value||asrPrefs.language||"auto";
+  const quality=$("auto-caption-quality")?.value||asrPrefs.quality||"balanced";
   const items=await PTSLocalSpeech.transcribe(file,smartStatus,{language,quality});
   if(!items.length)throw Error("Мовлення не розпізнано. Перевір, чи є голос у відео.");
   const clips=isVideo?state.clips:state.audios;
@@ -806,7 +830,7 @@ async function generateCaptions(){
   const active=selected&&(selected.kind==="video"||selected.kind==="audio")?linked.find(c=>c.id===selected.id):null;
   const target=active||linked[0]||{start:0,trim:0,duration:source.meta.duration};
   const shift=target.start||0,trim=target.trim||0,end=trim+target.duration;
-  const style=$("auto-caption-style")?.value||"highlight";
+  const style=$("auto-caption-style")?.value||asrPrefs.style||"highlight";
   const groupId=uid(),generated=[];
   for(const c of items){
    const rangeStart=Math.max(trim,c.start),rangeEnd=Math.min(end,c.start+c.duration);
@@ -830,7 +854,7 @@ async function generateCaptions(){
   state.captions.push(...generated);
   state.captionRegions.push({id:groupId,sourceId:source.id,
     start:shift,duration:target.duration,language,createdAt:Date.now()});
-  selected={kind:"caption",id:generated[0].id};
+  // Keep the video selected so the recognition report remains visible.
   persist();seek(generated[0].start+.05);
   const last=Math.max(...generated.map(c=>c.start+c.duration));
   const speechEnd=shift+target.duration;
@@ -840,10 +864,11 @@ async function generateCaptions(){
   const model=PTSLocalSpeech.MODELS[quality]?.label||"Whisper";
   const summary=generated.length+" фраз · "+fmt(target.duration)+" с відео · "+
     (language==="auto"?"мова визначена автоматично":language.toUpperCase());
-  const result=$("caption-summary");if(result){result.hidden=false;
-   result.textContent=summary+" · "+model+
+  asrLastSummary=summary+" · "+model+
     (suspicious?" · Підозрілих фраз: "+suspicious:"")+
-    (gap>3?" · Останні "+fmt(gap)+" с без розпізнаного мовлення":"");}
+    (gap>3?" · Останні "+fmt(gap)+" с без розпізнаного мовлення":"");
+  const result=$("caption-summary");if(result){result.hidden=false;
+   result.textContent=asrLastSummary;}
   smartStatus("Готово: "+generated.length+" фраз. "+
     (exact?"Є часові позначки слів. ":"Є часові позначки фраз. ")+
     (gap>3?"В останніх "+fmt(gap)+" с слова не визначені — перевір звук. ":"")+
@@ -1007,7 +1032,7 @@ PTSCreative.makePanel($("creative-library"),{
  $("add-title").onclick=addTitle;$("add-caption").onclick=addCaption;$("record-btn").onclick=toggleMic;
  $("analyze-beats").onclick=analyzeBeats;
  $("split-beats").onclick=cutBeats;
- $("generate-captions").onclick=generateCaptions;
+
 $("split-btn").onclick=splitSelected;$("delete-btn").onclick=removeSelected;
 $("left-btn").onclick=()=>moveSelected(-1);$("right-btn").onclick=()=>moveSelected(1);
 $("save-btn").onclick=()=>{store();toast("Проєкт збережено в цьому браузері.");};
