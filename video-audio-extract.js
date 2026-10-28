@@ -21,8 +21,8 @@ async function audioFromVideo(url,{limit=600,onProgress}={}){
    if(video.readyState>=1)ready();
   });
   const total=video.duration;
-  if(!Number.isFinite(total)||total<=0)throw Error("Не вдається визначити тривалість відео.");
-  if(total>limit)throw Error("Цей режим підтримує ролики до "+Math.round(limit/60)+" хвилин. Розділи довший запис.");
+  if(total<=0||Number.isNaN(total))throw Error("Не вдається визначити тривалість відео.");
+  if(Number.isFinite(total)&&total>limit)throw Error("Цей режим підтримує ролики до "+Math.round(limit/60)+" хвилин. Розділи довший запис.");
   const mime=["audio/webm;codecs=opus","audio/webm","audio/mp4"].find(x=>MediaRecorder.isTypeSupported(x));
   if(!mime)throw Error("Браузер не підтримує запис аудіодоріжки (WebM/MP4). Спробуй Chrome або Edge.");
   ctx=new AudioContext();
@@ -46,14 +46,14 @@ async function audioFromVideo(url,{limit=600,onProgress}={}){
   });
   await video.play();
   onProgress?.("Витягування голосу з відео — 0%. Запис у реальному часі, без завантаження файлу на сервер.");
-  const update=setInterval(()=>onProgress?.("Витягування голосу з відео — "+Math.min(99,Math.round(video.currentTime/total*100))+"% · звук не відтворюється через динаміки"),750);
-  timeoutId=setTimeout(()=>{if(!video.ended){video.pause();rejectPlayback?.(Error("Час витягування звуку вичерпано. Спробуй коротший ролик."));}},Math.ceil((total+12)*1000));
+  const update=setInterval(()=>onProgress?.("Витягування голосу з відео — "+(Number.isFinite(total)?Math.min(99,Math.round(video.currentTime/total*100))+"%":"тривалість уточнюється") +" · звук не відтворюється через динаміки"),750);
+  timeoutId=setTimeout(()=>{if(!video.ended){video.pause();rejectPlayback?.(Error("Час витягування звуку вичерпано. Спробуй коротший ролик."));}},Math.ceil((Math.min(Number.isFinite(total)?total:limit,limit)+12)*1000));
   try{await ended;}finally{clearInterval(update);}
   video.pause();
   if(recorder.state!=="inactive")recorder.stop();
   const audio=await recorded;
   stopped=true;
-  onProgress?.("Звук витягнуто · "+Math.round(total)+" с. Підготовка розпізнавання.");
+  onProgress?.("Звук витягнуто · "+Math.round(Number.isFinite(total)?total:video.currentTime)+" с. Підготовка розпізнавання.");
   return audio;
  }finally{
   clearTimeout(timeoutId);
