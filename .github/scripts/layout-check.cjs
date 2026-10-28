@@ -77,8 +77,7 @@ const cases=[
         if(translated.motion!=='Биття серця')issues.push('motion name not translated');
         const fill=page.locator('#playback-progress-fill');
         if(!(await fill.count()))issues.push('playback progress bar missing');
-        await page.locator('#add-title').click();
-        await page.locator('#text-track .clip.title').first().click();
+        // The setup above already inserted and selected a title.
         if(!(await page.locator('#inspector').textContent()).includes('Плавна поява'))issues.push('animation inspector not Ukrainian');
       }
       if(size.name==='desktop-reference'){
