@@ -100,42 +100,82 @@ function inspectorInput(id,fn){const el=$(id);if(el)el.addEventListener("change"
 function renderInspector(){
  const node=$("inspector"),c=getSelected();
  if(!c){node.innerHTML='<p class="hint">Обери фрагмент на таймлайні, щоб налаштувати його параметри.</p>';return;}
- let html='<h3>'+(selected.kind==="video"?"ВІДЕО / ФОТО":selected.kind==="title"?"АНІМОВАНИЙ ТЕКСТ":selected.kind==="caption"?"СУБТИТРИ":"АУДІО / ОЗВУЧКА")+'</h3>';
+ const labels={video:"ВІДЕО / ФОТО",title:"АНІМОВАНИЙ ТЕКСТ",caption:"СУБТИТРИ",audio:"АУДІО / ОЗВУЧКА",sticker:"СТІКЕР / CTA",effect:"MOTION FX"};
+ let html='<h3>'+(labels[selected.kind]||"ЕЛЕМЕНТ")+'</h3>';
  if(selected.kind==="video"||selected.kind==="audio"){const m=getMedia(c.mediaId);html+='<div class="mini">'+h(m?.name||"Медіа недоступне")+'</div>';}
- if(selected.kind==="title"||selected.kind==="caption"){
-  html+='<div class="field"><label for="prop-text">ТЕКСТ</label><textarea id="prop-text">'+h(c.text)+'</textarea></div>';
+ const editableText=selected.kind==="title"||selected.kind==="caption"||(selected.kind==="sticker"&&["sale","shop","new"].includes(c.sticker));
+ if(editableText)html+='<div class="field"><label for="prop-text">ТЕКСТ</label><textarea id="prop-text">'+h(c.text||"")+'</textarea></div>';
+ if(selected.kind==="title"||selected.kind==="sticker"){
+  const choices=selected.kind==="title"
+   ?[['fade','Плавна поява'],['slide','Підйом'],['pop','Масштабування'],['typewriter','Друкарська машинка'],['pulse','Пульсація'],['bounce','Bounce'],['none','Без анімації']]
+   :[['pop','Pop In'],['bounce','Bounce'],['pulse','Pulse'],['float','Floating'],['spin','Spin'],['slide','Slide In']];
+  html+='<div class="field"><label for="prop-animation">АНІМАЦІЯ</label><select id="prop-animation">'+choices.map(([id,n])=>'<option value="'+id+'">'+n+'</option>').join('')+'</select></div>';
  }
  if(selected.kind==="title"){
-  html+='<div class="field"><label for="prop-animation">АНІМАЦІЯ</label><select id="prop-animation"><option value="fade">Плавна поява</option><option value="slide">Підйом знизу</option><option value="pop">Масштабування</option><option value="none">Без анімації</option></select></div>';
   html+=field("РОЗМІР ТЕКСТУ, %","prop-size",c.size,'type="number" min="2" max="20" step=".5"');
   html+=field("ВИСОТА РОЗМІЩЕННЯ, %","prop-y",c.y,'type="number" min="5" max="95" step="1"');
+ }
+ if(selected.kind==="sticker"){
+  html+=field("ПОЗИЦІЯ X, %","prop-x",c.x,'type="number" min="0" max="100" step="1"');
+  html+=field("ПОЗИЦІЯ Y, %","prop-y",c.y,'type="number" min="0" max="100" step="1"');
+  html+=field("МАСШТАБ, %","prop-scale",c.scale,'type="number" min="3" max="90" step="1"');
+  html+=field("ПОВОРОТ, °","prop-rotation",c.rotation,'type="number" min="-360" max="360" step="5"');
+  html+='<div class="field"><label for="prop-color">КОЛІР СТІКЕРА</label><input type="color" id="prop-color" value="'+h(c.color||"#ffffff")+'"></div>';
+ }
+ if(selected.kind==="effect"){
+  html+='<div class="mini">'+h(PTSCreative.getEffect(c.effect)?.desc||"Ефект кадру")+'</div>';
+  html+=field("ІНТЕНСИВНІСТЬ, %","prop-intensity",c.intensity,'type="number" min="0" max="150" step="5"');
  }
  if(selected.kind!=="video")html+=field("ПОЧАТОК, СЕК","prop-start",fmt(c.start),'type="number" min="0" step=".1"');
  html+=field("ТРИВАЛІСТЬ, СЕК","prop-duration",fmt(c.duration),'type="number" min=".2" step=".1"');
  if(selected.kind==="video"||selected.kind==="audio")html+=field("ПОЧАТОК В ФАЙЛІ, СЕК","prop-trim",fmt(c.trim),'type="number" min="0" step=".1"');
  if(selected.kind==="audio")html+=field("ГУЧНІСТЬ, %","prop-volume",Math.round(c.volume*100),'type="number" min="0" max="200" step="5"');
- html+='<button class="small-btn" id="inspector-delete">✕ ВИДАЛИТИ ШАР</button>';
- node.innerHTML=html;
- if(selected.kind==="title"||selected.kind==="caption")inspectorInput("prop-text",(c,v)=>c.text=v);
- if(selected.kind==="title"){
-  $("prop-animation").value=c.animation;inspectorInput("prop-animation",(c,v)=>c.animation=v);
-  inspectorInput("prop-size",(c,v)=>c.size=clamp(num(v,c.size),2,20));
-  inspectorInput("prop-y",(c,v)=>c.y=clamp(num(v,c.y),5,95));
+ html+='<button class="small-btn" id="inspector-delete">✕ ВИДАЛИТИ ШАР</button>';node.innerHTML=html;
+ if(editableText)inspectorInput("prop-text",(obj,v)=>obj.text=v);
+ if(selected.kind==="title"||selected.kind==="sticker"){$("prop-animation").value=c.animation;inspectorInput("prop-animation",(obj,v)=>obj.animation=v);}
+ if(selected.kind==="title"){inspectorInput("prop-size",(obj,v)=>obj.size=clamp(num(v,obj.size),2,20));inspectorInput("prop-y",(obj,v)=>obj.y=clamp(num(v,obj.y),5,95));}
+ if(selected.kind==="sticker"){
+  inspectorInput("prop-x",(obj,v)=>obj.x=clamp(num(v,obj.x),0,100));
+  inspectorInput("prop-y",(obj,v)=>obj.y=clamp(num(v,obj.y),0,100));
+  inspectorInput("prop-scale",(obj,v)=>obj.scale=clamp(num(v,obj.scale),3,90));
+  inspectorInput("prop-rotation",(obj,v)=>obj.rotation=clamp(num(v,obj.rotation),-360,360));
+  inspectorInput("prop-color",(obj,v)=>obj.color=v);
  }
- if(selected.kind!=="video")inspectorInput("prop-start",(c,v)=>c.start=Math.max(0,num(v,c.start)));
- inspectorInput("prop-duration",(c,v)=>{const media=(selected.kind==="video"||selected.kind==="audio")?getMedia(c.mediaId):null;const max=media?Math.max(.2,media.duration-c.trim):3600;c.duration=clamp(num(v,c.duration),.2,max);if(selected.kind==="video")reorder();});
- if(selected.kind==="video"||selected.kind==="audio")inspectorInput("prop-trim",(c,v)=>{const media=getMedia(c.mediaId);c.trim=clamp(num(v,c.trim),0,Math.max(0,(media?.duration||0)-.2));c.duration=Math.min(c.duration,Math.max(.2,(media?.duration||.2)-c.trim));if(selected.kind==="video")reorder();});
- if(selected.kind==="audio")inspectorInput("prop-volume",(c,v)=>{c.volume=clamp(num(v,100)/100,0,2);const n=audioNodes.get(c.id);if(n)n.gain.gain.value=c.volume;});
+ if(selected.kind==="effect")inspectorInput("prop-intensity",(obj,v)=>obj.intensity=clamp(num(v,obj.intensity),0,150));
+ if(selected.kind!=="video")inspectorInput("prop-start",(obj,v)=>obj.start=Math.max(0,num(v,obj.start)));
+ inspectorInput("prop-duration",(obj,v)=>{
+  const media=(selected.kind==="video"||selected.kind==="audio")?getMedia(obj.mediaId):null;
+  const max=media?Math.max(.2,media.duration-obj.trim):3600;
+  obj.duration=clamp(num(v,obj.duration),.2,max);if(selected.kind==="video")reorder();
+ });
+ if(selected.kind==="video"||selected.kind==="audio")inspectorInput("prop-trim",(obj,v)=>{
+  const media=getMedia(obj.mediaId);obj.trim=clamp(num(v,obj.trim),0,Math.max(0,(media?.duration||0)-.2));
+  obj.duration=Math.min(obj.duration,Math.max(.2,(media?.duration||.2)-obj.trim));if(selected.kind==="video")reorder();
+ });
+ if(selected.kind==="audio")inspectorInput("prop-volume",(obj,v)=>{obj.volume=clamp(num(v,100)/100,0,2);const n=audioNodes.get(obj.id);if(n)n.gain.gain.value=obj.volume;});
  $("inspector-delete").onclick=removeSelected;
 }
 function redraw(){renderAssets();redrawTimeline();renderInspector();setDimensions();draw(now);}
 function addTitle(){const obj={id:uid(),text:"ВАШ НОВИЙ КРЕАТИВ",start:now,duration:3.5,animation:"fade",size:8,y:45};state.titles.push(obj);selected={kind:"title",id:obj.id};persist();}
+function addSticker(id){
+ const preset=PTSCreative.getSticker(id);if(!preset)return;
+ const text={sale:"−50% OFF",shop:"SHOP NOW ↗",new:"NEW DROP"}[id]||"";
+ const obj={id:uid(),sticker:id,text,start:now,duration:2.5,animation:"pop",x:50,y:35,scale:20,rotation:0,color:"#ffffff"};
+ state.stickers.push(obj);selected={kind:"sticker",id:obj.id};persist();toast(preset.name+" додано");
+}
+function addEffect(id){
+ const preset=PTSCreative.getEffect(id);if(!preset)return;
+ const obj={id:uid(),effect:id,start:now,duration:preset.duration,intensity:65};
+ state.effects.push(obj);selected={kind:"effect",id:obj.id};persist();toast(preset.name+" додано");
+}
 function addCaption(){const obj={id:uid(),text:"Ваш текст субтитрів",start:now,duration:3};state.captions.push(obj);selected={kind:"caption",id:obj.id};persist();}
 function removeSelected(){
  const c=getSelected();if(!c)return;
  if(selected.kind==="video")state.clips=state.clips.filter(x=>x.id!==c.id);
  if(selected.kind==="title")state.titles=state.titles.filter(x=>x.id!==c.id);
  if(selected.kind==="caption")state.captions=state.captions.filter(x=>x.id!==c.id);
+ if(selected.kind==="sticker")state.stickers=state.stickers.filter(x=>x.id!==c.id);
+ if(selected.kind==="effect")state.effects=state.effects.filter(x=>x.id!==c.id);
  if(selected.kind==="audio"){state.audios=state.audios.filter(x=>x.id!==c.id);const n=audioNodes.get(c.id);if(n){n.el.pause();n.el.src="";n.source.disconnect();audioNodes.delete(c.id);}}
  selected=null;reorder();persist();
 }
