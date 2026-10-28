@@ -6,7 +6,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const root = path.resolve(__dirname, '../../dist');
-const files = {'/':'index.html','/index.html':'index.html','/app.js':'app.js','/creative-tools.js':'creative-tools.js','/emoji-catalog.js':'emoji-catalog.js','/creative-library-v2.js':'creative-library-v2.js','/fullscreen-overlays.js':'fullscreen-overlays.js','/styles.css':'styles.css'};
+const files = {'/':'index.html','/index.html':'index.html','/app.js':'app.js','/creative-tools.js':'creative-tools.js','/emoji-catalog.js':'emoji-catalog.js','/creative-library-v2.js':'creative-library-v2.js','/fullscreen-overlays.js':'fullscreen-overlays.js','/uk-localization.js':'uk-localization.js','/styles.css':'styles.css'};
 const types = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8'};
 const server = createServer((request,response)=>{
   const pathname = new URL(request.url, 'http://127.0.0.1').pathname;
@@ -62,6 +62,25 @@ const cases=[
       const title=await page.locator('#text-track .clip').count();
       if(title===0) issues.push('adding text layer failed');
       // Time-editing regression: drag the title along its track, then resize its right edge.
+      if(size.name==='desktop-reference'){
+        if(!(await page.title()).includes("відеомонтажер"))issues.push('site title not Ukrainian');
+        if(!(await page.locator('.workspace-nav').textContent()).includes('БІБЛІОТЕКА ЕФЕКТІВ'))issues.push('creative workspace tab not Ukrainian');
+        if(!(await page.locator('.timeline-title').textContent()).includes('МОНТАЖНА ШКАЛА'))issues.push('timeline heading not Ukrainian');
+        const translated=await page.evaluate(()=>({
+          music:window.PTSCreative.MUSIC.filter(x=>/[А-ЯІЇЄҐ]/.test(x.name)).length,
+          fx:window.PTSCreative.EFFECTS.filter(x=>/[А-ЯІЇЄҐ]/.test(x.name)).length,
+          sticker:window.PTSCreative.STICKERS.filter(x=>/[А-ЯІЇЄҐ]/.test(x.name)).length,
+          overlays:window.PTSOverlays.PRESETS.filter(x=>/[А-ЯІЇЄҐ]/.test(x.name)).length,
+          motion:window.PTSUk.motion('heartbeat')
+        }));
+        if(translated.music!==36||translated.fx!==16||translated.sticker!==27||translated.overlays!==16)issues.push('incomplete Ukrainian translations: '+JSON.stringify(translated));
+        if(translated.motion!=='Биття серця')issues.push('motion name not translated');
+        const fill=page.locator('#playback-progress-fill');
+        if(!(await fill.count()))issues.push('playback progress bar missing');
+        await page.locator('#add-title').click();
+        await page.locator('#text-track .clip.title').first().click();
+        if(!(await page.locator('#inspector').textContent()).includes('Плавна поява'))issues.push('animation inspector not Ukrainian');
+      }
       if(size.name==='desktop-reference'){
         const titleClip=page.locator('#text-track .clip.title').first();
         const initial=await page.evaluate(()=>JSON.parse(localStorage.getItem('pts-creative-project-v1')).titles[0]);
