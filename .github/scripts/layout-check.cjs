@@ -418,6 +418,12 @@ const cases=[
     if(await capPage.locator('#caption-track .clip').count()!==2)throw Error('Automatic subtitles lost after reload');
     await capPage.locator('#video-track .clip').first().click();
     if(!await capPage.locator('#inspector #clear-auto-captions').count())throw Error('Per-video caption removal button missing');
+    await capPage.locator('#inspector #clear-auto-captions').click();
+    const cleared=await capPage.evaluate(()=>{
+      const p=JSON.parse(localStorage.getItem('pts-creative-project-v1'));return {captions:p.captions?.length,regions:p.captionRegions?.length};
+    });
+    if(cleared.captions!==0||cleared.regions!==0)throw Error('Failed to delete prior bad automatic captions from selected clip: '+JSON.stringify(cleared));
+
 
     if(await capPage.locator('.caption-region').count()!==1)throw Error('Full-length caption region lost after reload');
     console.log('Polish auto-subtitles QA PASS: original soundtrack extracted, full 20s group, two timed captions, typography persisted');
