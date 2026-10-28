@@ -10,7 +10,7 @@ let db, audioContext, mixDestination, videoSourceNode;
 let selected = null, now = 0, playing = false, frame = 0, startedAt = 0, startedFrom = 0;
 let exportRecorder = null, exportCancelled = false, micRecorder = null, micStream = null;
 let dragClipId = null, toastTimeout = null, loading = false;
-let state = {version:1,name:"Рекламний креатив 01",ratio:"9:16",media:[],clips:[],titles:[],captions:[],audios:[]};
+let state = {version:1,name:"Рекламний креатив 01",ratio:"9:16",media:[],clips:[],titles:[],captions:[],audios:[],stickers:[],effects:[]};
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(36));
 const clamp = (x,a,b) => Math.min(b,Math.max(a,x));
 const num = (v,d=0) => Number.isFinite(Number(v)) ? Number(v) : d;
@@ -19,7 +19,7 @@ const h = t => String(t).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"
 const fmt = n => (Math.round(n*10)/10).toFixed(1);
 function toast(message){const el=$("toast");el.textContent=message;el.classList.add("visible");clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>el.classList.remove("visible"),3200);}
 function getMedia(id){return state.media.find(x=>x.id===id);}
-function duration(){const ends=[...state.clips.map(x=>x.start+x.duration),...state.titles.map(x=>x.start+x.duration),...state.captions.map(x=>x.start+x.duration),...state.audios.map(x=>x.start+x.duration)];return Math.max(state.clips.length||state.titles.length||state.captions.length||state.audios.length?1:8,...ends);}
+function duration(){const ends=[...state.clips.map(x=>x.start+x.duration),...state.titles.map(x=>x.start+x.duration),...state.captions.map(x=>x.start+x.duration),...state.audios.map(x=>x.start+x.duration),...state.stickers.map(x=>x.start+x.duration),...state.effects.map(x=>x.start+x.duration)];return Math.max(state.clips.length||state.titles.length||state.captions.length||state.audios.length||state.stickers.length||state.effects.length?1:8,...ends);}
 function videoEnd(){return state.clips.reduce((t,c)=>t+c.duration,0);}
 function reorder(){let at=0;state.clips.forEach(c=>{c.start=at;at+=c.duration;});}
 function store(){state.name=$("project-name").value||"Без назви";try{localStorage.setItem(PROJECT_KEY,JSON.stringify(state));$("save-status").textContent="Збережено локально";}catch(e){toast("Не вдалось зберегти метадані: "+e.message);}}
@@ -63,23 +63,23 @@ function renderAssets(){
  }));
 }
 function selectClip(kind,id){selected={kind,id};redrawTimeline();renderInspector();}
-function getSelected(){if(!selected)return null;return (selected.kind==="video"?state.clips:selected.kind==="title"?state.titles:selected.kind==="caption"?state.captions:state.audios).find(x=>x.id===selected.id);}
-const trackMap={video:"video-track",title:"text-track",caption:"caption-track",audio:"audio-track"};
+function getSelected(){if(!selected)return null;return ({video:state.clips,title:state.titles,caption:state.captions,audio:state.audios,sticker:state.stickers,effect:state.effects}[selected.kind]||[]).find(x=>x.id===selected.id);}
+const trackMap={video:"video-track",title:"text-track",sticker:"fx-track",effect:"fx-track",caption:"caption-track",audio:"audio-track"};
 function redrawTimeline(){
  const pixels=num($("zoom").value,65),length=duration(),width=Math.max($("track-scroll").clientWidth,length*pixels+110);
  $("track-inner").style.width=width+"px";
  $("ruler").innerHTML="";
  for(let t=0;t<=Math.ceil(width/pixels);t+=2){const tick=document.createElement("span");tick.className="tick";tick.style.left=t*pixels+"px";tick.textContent=timecode(t).slice(0,5);$("ruler").appendChild(tick);}
  Object.values(trackMap).forEach(id=>$(id).innerHTML="");
- const groups={video:state.clips,title:state.titles,caption:state.captions,audio:state.audios};
+ const groups={video:state.clips,title:state.titles,sticker:state.stickers,effect:state.effects,caption:state.captions,audio:state.audios};
  Object.keys(groups).forEach(kind=>{
   const list=groups[kind],track=$(trackMap[kind]);
   list.forEach(clip=>{
    const item=document.createElement("button");item.type="button";
    item.className="clip "+kind+(selected&&selected.id===clip.id?" selected":"");
    item.style.left=clip.start*pixels+"px";item.style.width=Math.max(11,clip.duration*pixels-3)+"px";
-   item.title=(kind==="video"?getMedia(clip.mediaId)?.name:kind==="audio"?getMedia(clip.mediaId)?.name:clip.text)||"Фрагмент";
-   item.textContent=(kind==="video"?"▣ ":kind==="audio"?"♫ ":kind==="title"?"T ":"CC ")+(kind==="video"||kind==="audio"?(getMedia(clip.mediaId)?.name||"Немає файлу"):(clip.text||"Текст"));
+   item.title=(kind==="video"?getMedia(clip.mediaId)?.name:kind==="audio"?getMedia(clip.mediaId)?.name:kind==="sticker"?PTSCreative.getSticker(clip.sticker)?.name:kind==="effect"?PTSCreative.getEffect(clip.effect)?.name:clip.text)||"Фрагмент";
+   item.textContent=(kind==="video"?"▣ ":kind==="audio"?"♫ ":kind==="title"?"T ":kind==="sticker"?"✦ ":kind==="effect"?"FX ":"CC ")+(kind==="video"||kind==="audio"?(getMedia(clip.mediaId)?.name||"Немає файлу"):kind==="sticker"?(PTSCreative.getSticker(clip.sticker)?.name||"Стікер"):kind==="effect"?(PTSCreative.getEffect(clip.effect)?.name||"Ефект"):(clip.text||"Текст"));
    item.addEventListener("click",e=>{e.stopPropagation();selectClip(kind,clip.id);seek(clip.start);});
    if(kind==="video"){
     item.draggable=true;
@@ -308,7 +308,7 @@ async function boot(){
  try{
   db=await createDB();
   const old=JSON.parse(localStorage.getItem(PROJECT_KEY)||"null");
-  if(old&&old.version===1){state={...state,...old};}
+  if(old&&old.version===1){state={...state,...old,stickers:Array.isArray(old.stickers)?old.stickers:[],effects:Array.isArray(old.effects)?old.effects:[]};}
   const all=await allBlobs();for(const a of all)assetUrls.set(a.id,URL.createObjectURL(a.file));
   $("project-name").value=state.name;$("ratio").value=state.ratio;
   redraw();seek(0);
