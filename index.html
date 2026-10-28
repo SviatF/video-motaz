@@ -16,6 +16,11 @@
 </header>
 <section class="work">
   <aside class="library">
+    <nav class="workspace-nav" aria-label="Робочі розділи">
+      <button type="button" data-workspace="media" class="active" aria-selected="true">▣ МЕДІА</button>
+      <button type="button" data-workspace="creative" aria-selected="false">✦ CREATIVE LIBRARY</button>
+    </nav>
+    <div class="library-view" id="media-view">
     <div class="panel-top"><span class="kicker">WORKSPACE / 01</span><h2>МЕДІАТЕКА<span>.</span></h2></div>
     <label class="upload" id="drop-zone"><span class="upload-icon">＋</span><strong>ДОДАТИ МАТЕРІАЛИ</strong><small>Відео, фото, музика або голос</small><input type="file" id="file-input" accept="video/*,audio/*,image/*" multiple hidden></label>
     <div class="inline-heading"><span>ФАЙЛИ ПРОЄКТУ</span><span id="asset-count">00</span></div>
@@ -28,11 +33,17 @@
       <label class="tool" for="srt-input"><span>SRT</span><div><b>ІМПОРТ СУБТИТРІВ</b><small>Точні таймкоди з файлу .srt</small></div><i>↗</i></label><input type="file" id="srt-input" accept=".srt,text/plain" hidden>
       <button id="record-btn" class="tool"><span>●</span><div><b id="record-label">ЗАПИС ОЗВУЧКИ</b><small>Безкоштовно через мікрофон</small></div><i id="record-icon">＋</i></button>
     </div>
-    <section class="creative-section" aria-label="Бібліотека анімацій, ефектів та музики">
-      <div class="inline-heading creative-heading"><span>CREATIVE PACK / FREE</span><span>05+</span></div>
-      <div id="creative-library"></div>
-    </section>
     <p class="hint">Медіафайли залишаються на пристрої. AI-транскрипція і синтез голосу ще не підключені.</p>
+  </div>
+    <div class="library-view" id="creative-view" hidden>
+      <div class="creative-hero">
+        <div class="kicker">PTS / CREATIVE ASSETS</div>
+        <div class="creative-hero-line"><h2>БІБЛІОТЕКА<span>.</span></h2><button type="button" id="library-expand" title="Розгорнути бібліотеку" aria-pressed="false">⤢</button></div>
+        <p>Emoji · Animated stickers · Motion FX · Music</p>
+        <div class="creative-hero-count"><strong id="emoji-count">3 963</strong> EMOJI <span>· UNICODE 18.0</span></div>
+      </div>
+      <div id="creative-library"></div>
+    </div>
   </aside>
   <main class="stage">
     <div class="stage-top"><div><span class="signal">●</span> LIVE PREVIEW <span class="dim">/ PTS MOTION ENGINE</span></div><div class="ratio"><label for="ratio">ФОРМАТ</label><select id="ratio"><option value="9:16">9:16 · REELS</option><option value="4:5">4:5 · FEED</option><option value="1:1">1:1 · SQUARE</option><option value="16:9">16:9 · LANDSCAPE</option></select></div></div>
@@ -50,6 +61,7 @@
 <dialog id="export-dialog"><div class="dialog-inner"><div class="kicker">RENDER / 001</div><h2>ЕКСПОРТ КРЕАТИВУ<span>.</span></h2><p>Файл збирається в реальному часі в браузері. Тримай вкладку відкритою до завершення.</p><div class="export-facts"><div>РОЗДІЛЬНІСТЬ<strong id="export-resolution"></strong></div><div>ТРИВАЛІСТЬ<strong id="export-duration"></strong></div><div>ФОРМАТ<strong id="export-format"></strong></div></div><progress id="export-progress" value="0" max="100" hidden></progress><p id="export-message" class="small">MP4 доступний лише у браузерах із підтримкою відповідного кодека. Інакше — WebM.</p><div class="dialog-actions"><button id="cancel-export" class="ghost">ЗАКРИТИ</button><button id="start-export" class="primary">ПОЧАТИ ЕКСПОРТ ↗</button></div></div></dialog>
 <video id="video-source" playsinline preload="auto" hidden></video>
 </div>
+<script src="./emoji-catalog.js" defer></script>
 <script src="./creative-tools.js" defer></script>
 <script src="./app.js" defer></script>
 </body></html>
