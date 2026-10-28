@@ -26,7 +26,11 @@ function getMedia(id){return state.media.find(x=>x.id===id);}
 function duration(){const ends=[...state.clips.map(x=>x.start+x.duration),...state.titles.map(x=>x.start+x.duration),...state.captions.map(x=>x.start+x.duration),...state.audios.map(x=>x.start+x.duration),...state.stickers.map(x=>x.start+x.duration),...state.effects.map(x=>x.start+x.duration),...state.overlays.map(x=>x.start+x.duration)];return Math.max(state.clips.length||state.titles.length||state.captions.length||state.audios.length||state.stickers.length||state.effects.length||state.overlays.length?1:8,...ends);}
 function videoEnd(){return state.clips.reduce((t,c)=>Math.max(t,c.start+c.duration),0);}
 function reorder(){let at=0;state.clips.forEach(c=>{c.start=at;at+=c.duration;});}
-function store(){state.name=$("project-name").value||"Без назви";try{localStorage.setItem(PROJECT_KEY,JSON.stringify(state));$("save-status").textContent="Збережено локально";}catch(e){toast("Не вдалось зберегти метадані: "+e.message);}}
+function store(){state.name=$("project-name").value||"Без назви";try{
+ localStorage.setItem(PROJECT_KEY,JSON.stringify(state));
+ const label=$("save-status");label.textContent="Збережено";
+ label.classList.remove("status-flash");void label.offsetWidth;label.classList.add("status-flash");
+}catch(e){toast("Не вдалося зберегти проєкт: "+e.message);}}
 function markDirty(){$("save-status").textContent="Не збережено";}
 function persist(){store();redraw();}
 function createDB(){return new Promise((resolve,reject)=>{const req=indexedDB.open(ASSET_DB,1);req.onupgradeneeded=()=>req.result.createObjectStore("files",{keyPath:"id"});req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}
@@ -136,7 +140,12 @@ function redrawTimeline(){
  $("duration-label").textContent=fmt(length)+" С";$("total-time").textContent=timecode(length);
  positionHead();
 }
-function positionHead(){$("playhead").style.left=(now*num($("zoom").value,65))+"px";$("current-time").textContent=timecode(now);}
+function positionHead(){
+ $("playhead").style.left=(now*num($("zoom").value,65))+"px";
+ $("current-time").textContent=timecode(now);
+ const bar=$("playback-progress-fill");
+ if(bar)bar.style.width=clamp(duration()>0?now/duration()*100:0,0,100).toFixed(2)+"%";
+}
 function field(label,id,value,opts=""){return '<div class="field"><label for="'+id+'">'+label+'</label><input id="'+id+'" value="'+h(value)+'" '+opts+'></div>';}
 function inspectorInput(id,fn){const el=$(id);if(el)el.addEventListener("change",()=>{const c=getSelected();if(!c)return;fn(c,el.value);persist();});}
 function renderInspector(){
@@ -500,7 +509,12 @@ function syncAudio(t,shouldPlay){
  }
  for(const [id,n] of audioNodes)if(!active.has(id))n.el.pause();
 }
-function stop(){playing=false;cancelAnimationFrame(frame);video.pause();syncAudio(now,false);$("play-btn").textContent="▶";}
+function setPlaybackStatus(active){
+ document.querySelector(".stage")?.classList.toggle("is-playing",!!active);
+ const status=$("playback-status");if(status)status.textContent=active?"ВІДТВОРЕННЯ":"ГОТОВО ДО МОНТАЖУ";
+ $("play-btn").setAttribute("aria-label",active?"Пауза":"Відтворити");
+}
+function stop(){playing=false;cancelAnimationFrame(frame);video.pause();syncAudio(now,false);$("play-btn").textContent="▶";setPlaybackStatus(false);}
 function tick(){
  if(!playing)return;
  const t=startedFrom+(performance.now()-startedAt)/1000;
@@ -512,7 +526,7 @@ async function play(){
  PTSCreative.stopPreview();
  if(now>=duration()-.05)now=0;
  await initializeAudio();if(audioContext)await audioContext.resume();
- playing=true;startedAt=performance.now();startedFrom=now;$("play-btn").textContent="Ⅱ";tick();
+ playing=true;startedAt=performance.now();startedFrom=now;$("play-btn").textContent="Ⅱ";setPlaybackStatus(true);tick();
 }
 function srtSeconds(str){const p=str.trim().replace(",",".").split(":");return p.length===3?num(p[0])*3600+num(p[1])*60+num(p[2]):0;}
 async function importSrt(file){
@@ -659,6 +673,11 @@ $("library-expand").addEventListener("click",()=>{
  const aside=document.querySelector(".library"),wide=aside.classList.toggle("library-expanded");
  $("library-expand").setAttribute("aria-pressed",String(wide));
  $("library-expand").textContent=wide?"⤡":"⤢";
+});
+document.addEventListener("click",event=>{
+ const target=event.target.closest("button, .tool, .upload, .asset");
+ if(!target||target.disabled||window.matchMedia("(prefers-reduced-motion: reduce)").matches)return;
+ target.classList.remove("ui-clicked");void target.offsetWidth;target.classList.add("ui-clicked");
 });
 PTSCreative.makePanel($("creative-library"),{
   addSticker,addEffect,addEmoji,addMotion,addOverlay,
