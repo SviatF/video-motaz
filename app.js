@@ -377,6 +377,17 @@ async function boot(){
 }
 $("file-input").addEventListener("change",async e=>{await importFiles(e.target.files);e.target.value="";});
 $("srt-input").addEventListener("change",async e=>{await importSrt(e.target.files[0]);e.target.value="";});
+document.querySelectorAll("[data-workspace]").forEach(button=>button.addEventListener("click",()=>{
+ const target=button.dataset.workspace;
+ document.querySelectorAll("[data-workspace]").forEach(el=>{const on=el===button;el.classList.toggle("active",on);el.setAttribute("aria-selected",String(on));});
+ $("media-view").hidden=target!=="media";$("creative-view").hidden=target!=="creative";
+ if(target!=="creative"){$("library-expand").setAttribute("aria-pressed","false");document.querySelector(".library").classList.remove("library-expanded");PTSCreative.stopPreview();}
+}));
+$("library-expand").addEventListener("click",()=>{
+ const aside=document.querySelector(".library"),wide=aside.classList.toggle("library-expanded");
+ $("library-expand").setAttribute("aria-pressed",String(wide));
+ $("library-expand").textContent=wide?"⤡":"⤢";
+});
 PTSCreative.makePanel($("creative-library"),{
   addSticker,addEffect,addEmoji,addMotion,
   addMusic:async file=>{await importFiles([file]);toast("Музику додано на аудіодоріжку");},
