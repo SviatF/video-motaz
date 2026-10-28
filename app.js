@@ -331,7 +331,7 @@ function updateOverlay(){
  const x=item.x??50,y=item.y??45;
  selectionBox.hidden=false;
  selectionBox.style.left=x+"%";selectionBox.style.top=y+"%";
- selectionBox.style.width=Math.max(1,dim.width/canvas.width*100)+"%";
+ selectionBox.style.width=Math.max(2,Math.min(dim.width/canvas.width*100,2*Math.min(x,100-x)-4))+"%";
  selectionBox.style.height=Math.max(1,dim.height/canvas.height*100)+"%";
  selectionBox.style.transform="translate(-50%,-50%) rotate("+(item.rotation||0)+"deg)";
 }
