@@ -6,7 +6,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const root = path.resolve(__dirname, '../../dist');
-const files = {'/':'index.html','/index.html':'index.html','/app.js':'app.js','/creative-tools.js':'creative-tools.js','/emoji-catalog.js':'emoji-catalog.js','/creative-library-v2.js':'creative-library-v2.js','/fullscreen-overlays.js':'fullscreen-overlays.js','/uk-localization.js':'uk-localization.js','/styles.css':'styles.css'};
+const files = {'/':'index.html','/index.html':'index.html','/app.js':'app.js','/creative-tools.js':'creative-tools.js','/emoji-catalog.js':'emoji-catalog.js','/emoji-labels-uk.js':'emoji-labels-uk.js','/creative-library-v2.js':'creative-library-v2.js','/fullscreen-overlays.js':'fullscreen-overlays.js','/uk-localization.js':'uk-localization.js','/styles.css':'styles.css'};
 const types = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8'};
 const server = createServer((request,response)=>{
   const pathname = new URL(request.url, 'http://127.0.0.1').pathname;
@@ -148,6 +148,14 @@ const cases=[
         const count=await page.evaluate(()=>window.PTSEmojis?.count);
         if(count!==3963)issues.push('emoji catalog count incorrect: '+count);
         if(await page.locator('.emoji-item').count()<60)issues.push('emoji grid did not render initial page');
+        const localeCount=await page.evaluate(()=>Object.keys(window.PTSEmojiNamesUk?.labels||{}).length);
+        if(localeCount!==3963)issues.push('Ukrainian CLDR labels must cover all 3963 emojis: '+localeCount);
+        await page.locator('#asset-search').fill('серце');
+        if(await page.locator('.emoji-item').count()<5)issues.push('Ukrainian heart search failed');
+        await page.locator('#asset-search').fill('');
+        const firstLabel=await page.locator('.emoji-item').first().getAttribute('title');
+        if(!/[а-яіїєґ]/i.test(firstLabel||''))issues.push('Ukrainian emoji tooltip missing');
+
         await page.locator('#asset-search').fill('heart');
         if(await page.locator('.emoji-item').count()<5)issues.push('search for hearts returned too few results');
         await page.locator('.emoji-item').first().click();
