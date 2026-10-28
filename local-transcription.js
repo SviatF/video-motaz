@@ -125,20 +125,52 @@ const BOILERPLATE=[
  /subtitles?\s+(?:by|provided\s+by)\s+/i
 ];
 const normalizeText=t=>String(t||"").toLowerCase().normalize("NFKC").replace(/[^\p{L}\p{N}]+/gu," ").trim();
+function gibberishReason(value){
+ const text=String(value||"").trim(),words=text.match(/\p{L}+/gu)||[];
+ if(!words.length)return "Текст не містить слів";
+ // Very long pseudo-words such as "Wytokokokokokokoko..." indicate a
+ // degenerate Whisper decoding loop, not an actual Polish sentence.
+ for(const word of words){
+  const w=word.normalize("NFKC").toLowerCase();
+  if(w.length>45)return "Неприродно довге слово ("+w.length+" символів)";
+  if(w.length>=18){
+   for(let size=1;size<=5;size++){
+    const counts=new Map();
+    for(let i=0;i+size<=w.length;i++) {
+     const part=w.slice(i,i+size);
+     counts.set(part,(counts.get(part)||0)+1);
+    }
+    const max=Math.max(0,...counts.values());
+    if((size===1&&max/w.length>.82)||
+       (size>=2&&max>=6&&max*size/w.length>=.72))
+      return "Повторення складів у слові";
+   }
+   // A repeated two-syllable motif is often displaced by one character:
+   // detect "kokokokokoko" even if prefixed with Polish-looking letters.
+   if(/(.{2,5})\1{4,}/u.test(w))return "Нескінченне повторення складів";
+  }
+ }
+ if(words.length>=6){
+  const counts=new Map();
+  for(const word of words){const token=word.toLowerCase();counts.set(token,(counts.get(token)||0)+1);}
+  const common=Math.max(...counts.values());
+  if(common>=6&&common/words.length>.68)return "Надмірне повторення слова";
+ }
+ if(text.length>450)return "Неприродно довгий субтитр";
+ return "";
+}
 function inspectTranscript(items){
- const clean=[],rejected=[];
- const seen=new Map();
+ const clean=[],rejected=[],seen=new Map();
  for(const entry of items){
   const text=String(entry.text||"").trim(),canonical=normalizeText(text);
   if(!canonical)continue;
-  if(BOILERPLATE.some(re=>re.test(text))){
-   rejected.push({text,reason:"Підозріла шаблонна фраза Whisper"});continue;
-  }
-  // Identical 4+ word sentences repeated with large temporal separation
-  // are suspicious but not automatically deleted; surface a warning.
+  const reason=BOILERPLATE.some(re=>re.test(text))?"Підозріла шаблонна фраза Whisper":gibberishReason(text);
+  if(reason){rejected.push({text:text.slice(0,160),reason});continue;}
   if(canonical.split(" ").length>=4){
    const last=seen.get(canonical);
-   if(last!==undefined&&entry.start-last>3)rejected.push({text,reason:"Повтор тієї самої фрази"});
+   if(last!==undefined&&entry.start-last>3){
+    rejected.push({text:text.slice(0,160),reason:"Повтор тієї самої фрази"});continue;
+   }
    seen.set(canonical,entry.start);
   }
   clean.push(entry);
@@ -193,16 +225,21 @@ async function transcribe(file,progress,{language="auto",quality="balanced"}={})
  }
  output.sort((a,b)=>a.start-b.start);
  const examined=inspectTranscript(output);
- if(!examined.captions.length && examined.warnings.length){
-  const err=new Error("Модель видала лише підозрілі шаблонні фрази, а не справжнє мовлення. Субтитри не замінено. Спробуй вибрати «Польська» та «Максимальна · Whisper Small».");
+ const invalid=examined.warnings.length,total=invalid+examined.captions.length;
+ // A few legitimate words surrounded by obvious hallucinations are NOT a
+ // trustworthy transcript. Keep previously approved subtitles unchanged.
+ const unreliable=invalid>0&&(examined.captions.length===0||invalid/total>=.4);
+ if(unreliable){
+  const reasons=[...new Set(examined.warnings.map(x=>x.reason))].join(", ");
+  const err=new Error("Розпізнавання дало підозрілий текст ("+reasons+"). Старі субтитри збережені. Обери польську вручну, перевір голос і спробуй іншу модель.");
   err.code="WHISPER_HALLUCINATION";throw err;
  }
- if(!examined.captions.length)throw Error("Слів не розпізнано. Обери мову вручну або модель вищої якості.");
+ if(!examined.captions.length)throw Error("Слів не розпізнано. Перевір звук, мову або обери якіснішу модель.");
  // Preserve existing consumer array format, attach non-enumerable diagnostics
  // (no unintended caption content added to project persistence).
  Object.defineProperty(examined.captions,"diagnostics",{value:{quality,language,audio:stats,warnings:examined.warnings}});
  if(examined.warnings.length)progress?.("Модель видала "+examined.warnings.length+" підозрілих фраз. Перевір результат перед публікацією.");
  return examined.captions;
 }
-global.PTSLocalSpeech={MODEL,MODELS,LANGUAGES,load,transcribe,decodeAudio,chunkCaptions,modelOptions,inspectTranscript,audioDiagnostics};
+global.PTSLocalSpeech={MODEL,MODELS,LANGUAGES,load,transcribe,decodeAudio,chunkCaptions,modelOptions,inspectTranscript,gibberishReason,audioDiagnostics};
 })(window);
