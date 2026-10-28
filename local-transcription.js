@@ -81,24 +81,53 @@ function chunkCaptions(data,duration,{maxWords=4,maxDuration=2.8}={}){
   text:words.slice(i*maxWords,(i+1)*maxWords).join(" "),words:[]
  }));
 }
-async function transcribe(file,progress,{language="ukrainian"}={}){
+
+const LANGUAGES={auto:null,uk:"ukrainian",pl:"polish",en:"english",de:"german",es:"spanish",fr:"french",it:"italian",pt:"portuguese",cs:"czech",sk:"slovak",ru:"russian",ro:"romanian",tr:"turkish",nl:"dutch",hu:"hungarian",ar:"arabic",hi:"hindi"};
+function modelOptions(language,word=true){
+ const opts={task:"transcribe",return_timestamps:word?"word":true};
+ if(language&&LANGUAGES[language])opts.language=LANGUAGES[language];
+ return opts;
+}
+async function transcribe(file,progress,{language="auto"}={}){
  const audio=await decodeAudio(file,progress);
  const engine=await load(progress);
- progress?.("Розпізнавання слів і точних часових позначок на твоєму пристрої…");
- let result;
- try{
-  result=await engine(audio.samples,{
-   language,task:"transcribe",return_timestamps:"word",
-   chunk_length_s:30,stride_length_s:5
-  });
- }catch(e){
-  progress?.("Точні позначки слів недоступні. Пробуємо фразові таймкоди…");
-  result=await engine(audio.samples,{
-   language,task:"transcribe",return_timestamps:true,
-   chunk_length_s:30,stride_length_s:5
-  });
+ if(!(language in LANGUAGES))language="auto";
+ // Short overlapping windows keep 20-60s social videos from silently losing
+ // the latter half when a multilingual model returns an early stop token.
+ const samples=audio.samples,rate=16000,step=14,windowSeconds=15;
+ const count=Math.max(1,Math.ceil((audio.duration-1)/step));
+ const results=[];
+ for(let i=0;i<count;i++){
+  const start=i*step;if(start>=audio.duration)break;
+  const end=Math.min(audio.duration,start+windowSeconds);
+  const part=samples.subarray(Math.round(start*rate),Math.min(samples.length,Math.round(end*rate)));
+  if(!part.length)continue;
+  progress?.("Розпізнавання мовлення "+(i+1)+"/"+count+" · "+Math.round(start)+"–"+Math.round(end)+" с · "+(language==="auto"?"визначення мови автоматично":LANGUAGES[language]));
+  let result;
+  try{result=await engine(part,modelOptions(language,true));}
+  catch(e){
+   progress?.("Уточнення часових позначок фраз ("+(i+1)+"/"+count+")…");
+   result=await engine(part,modelOptions(language,false));
+  }
+  const phrases=chunkCaptions(result,end-start);
+  const nextStart=(i+1)*step;
+  // Keep the first half of the overlap from this chunk and the second
+  // half from the next. No artificial captions are added in silent gaps.
+  const keepUntil=nextStart>=audio.duration?audio.duration:nextStart+.5;
+  for(const c of phrases){
+   const absoluteStart=c.start+start,absoluteEnd=c.start+c.duration+start;
+   if(absoluteEnd<=start || absoluteStart>=keepUntil)continue;
+   const words=(c.words||[]).map(w=>({...w,start:+(w.start+start).toFixed(3),end:+(w.end+start).toFixed(3)}))
+      .filter(w=>w.end>start && w.start<keepUntil);
+   const normalizedStart=Math.max(start,absoluteStart),
+         normalizedEnd=Math.min(keepUntil,absoluteEnd);
+   if(normalizedEnd-normalizedStart<.07)continue;
+   const text=words.length?words.map(w=>w.text).join(" "):c.text;
+   results.push({start:+normalizedStart.toFixed(3),duration:+(normalizedEnd-normalizedStart).toFixed(3),text,words});
+  }
  }
- return chunkCaptions(result,audio.duration);
+ results.sort((a,b)=>a.start-b.start);
+ return results.filter(x=>x.text.trim());
 }
-global.PTSLocalSpeech={MODEL,load,transcribe,decodeAudio,chunkCaptions};
+global.PTSLocalSpeech={MODEL,LANGUAGES,load,transcribe,decodeAudio,chunkCaptions,modelOptions};
 })(window);
