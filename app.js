@@ -246,7 +246,7 @@ function renderInspector(){
  }
  if(selected.kind!=="video")html+='<div class="inspector-quick"><button type="button" id="fill-timeline" class="small-btn">↔ НА ВСЮ ДОВЖИНУ</button><button type="button" id="snap-begin" class="small-btn">|◀ НА ПОЧАТОК</button></div>';
  html+='<button class="small-btn" id="inspector-delete">✕ ВИДАЛИТИ ШАР</button>';node.innerHTML=html;
- if(editableText)inspectorInput("prop-text",(obj,v)=>obj.text=v);
+ if(editableText)inspectorInput("prop-text",(obj,v)=>{obj.text=v;if(selected.kind==="caption")obj.words=[];});
  if(animatable){
   const kind=selected.kind;
   $("key-add").onclick=()=>{const item=getSelected();if(!item)return;PTSMotion.put(item,kind,now);persist();toast("Ключовий кадр додано");};
@@ -545,15 +545,35 @@ function drawCaption(x){
   ctx.shadowBlur=0;ctx.fillStyle="#fff";ctx.fillText(line,w/2,cy);
  });
  if(style==="highlight"){
-  // Approximate progression until per-word timestamps are available.
-  const words=String(x.text||"").trim().split(/\s+/).filter(Boolean);
-  if(words.length&&lines.length===1){
-   const idx=Math.min(words.length-1,Math.floor(progress*words.length));
-   const prior=words.slice(0,idx).join(" "),current=words[idx],text=words.join(" ");
-   const total=ctx.measureText(text).width,start=w/2-total/2;
-   const xStart=start+(prior?ctx.measureText(prior+" ").width:0);
-   const width=ctx.measureText(current).width;
-   ctx.fillStyle="#f3cf69";ctx.fillText(current,xStart+width/2,y);
+  // Use actual Whisper word timestamps when available; do not infer that
+  // a word was spoken merely from the percentage of the whole sentence.
+  const words=x.words?.length?x.words:null;
+  if(words&&lines.length===1){
+   const current=words.find(w=>now>=w.start&&now<=w.end+.04);
+   if(current){
+    const wordIndex=words.indexOf(current);
+    const sentence=words.map(w=>w.text).join(" ");
+    const prior=words.slice(0,wordIndex).map(w=>w.text).join(" ");
+    const total=ctx.measureText(sentence).width,start=w/2-total/2;
+    const xStart=start+(prior?ctx.measureText(prior+" ").width:0);
+    const width=ctx.measureText(current.text).width;
+    ctx.shadowColor="#000";ctx.shadowBlur=12;
+    ctx.strokeStyle="#090909";ctx.lineWidth=fontSize*.14;
+    ctx.strokeText(current.text,xStart+width/2,y);
+    ctx.fillStyle="#f4d36e";ctx.fillText(current.text,xStart+width/2,y);
+   }
+  }else if(!words&&lines.length===1){
+   // Manual captions and imported SRT do not contain measured word timings.
+   // Offer a visual approximation; it is not exact speech alignment.
+   const tokens=String(x.text||"").trim().split(/\s+/).filter(Boolean);
+   if(tokens.length){
+    const idx=Math.min(tokens.length-1,Math.floor(progress*tokens.length));
+    const prior=tokens.slice(0,idx).join(" "),current=tokens[idx],text=tokens.join(" ");
+    const total=ctx.measureText(text).width,start=w/2-total/2;
+    const xStart=start+(prior?ctx.measureText(prior+" ").width:0);
+    const width=ctx.measureText(current).width;
+    ctx.fillStyle="#f3cf69";ctx.fillText(current,xStart+width/2,y);
+   }
   }
  }
  ctx.restore();
