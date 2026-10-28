@@ -10,6 +10,7 @@ let db, audioContext, mixDestination, videoSourceNode;
 let selected = null, now = 0, playing = false, frame = 0, startedAt = 0, startedFrom = 0;
 let exportRecorder = null, exportCancelled = false, micRecorder = null, micStream = null;
 let dragClipId = null, toastTimeout = null, loading = false;
+let timelineDrag = null, suppressClipClickUntil = 0, canvasDrag = null;
 let state = {version:1,name:"Рекламний креатив 01",ratio:"9:16",media:[],clips:[],titles:[],captions:[],audios:[],stickers:[],effects:[]};
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(36));
 const clamp = (x,a,b) => Math.min(b,Math.max(a,x));
@@ -20,7 +21,7 @@ const fmt = n => (Math.round(n*10)/10).toFixed(1);
 function toast(message){const el=$("toast");el.textContent=message;el.classList.add("visible");clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>el.classList.remove("visible"),3200);}
 function getMedia(id){return state.media.find(x=>x.id===id);}
 function duration(){const ends=[...state.clips.map(x=>x.start+x.duration),...state.titles.map(x=>x.start+x.duration),...state.captions.map(x=>x.start+x.duration),...state.audios.map(x=>x.start+x.duration),...state.stickers.map(x=>x.start+x.duration),...state.effects.map(x=>x.start+x.duration)];return Math.max(state.clips.length||state.titles.length||state.captions.length||state.audios.length||state.stickers.length||state.effects.length?1:8,...ends);}
-function videoEnd(){return state.clips.reduce((t,c)=>t+c.duration,0);}
+function videoEnd(){return state.clips.reduce((t,c)=>Math.max(t,c.start+c.duration),0);}
 function reorder(){let at=0;state.clips.forEach(c=>{c.start=at;at+=c.duration;});}
 function store(){state.name=$("project-name").value||"Без назви";try{localStorage.setItem(PROJECT_KEY,JSON.stringify(state));$("save-status").textContent="Збережено локально";}catch(e){toast("Не вдалось зберегти метадані: "+e.message);}}
 function markDirty(){$("save-status").textContent="Не збережено";}
@@ -49,7 +50,7 @@ async function importFiles(files){
   else{const item={id:uid(),mediaId:id,start:videoEnd(),duration:kind==="image"?5:secs,trim:0};state.clips.push(item);selected={kind:"video",id:item.id};}
   count++;
  }
- if(count){reorder();persist();toast("Додано файлів: "+count);}
+ if(count){persist();toast("Додано файлів: "+count);}
 }
 function renderAssets(){
  const el=$("asset-list");$("asset-count").textContent=String(state.media.length).padStart(2,"0");
@@ -58,13 +59,48 @@ function renderAssets(){
  el.querySelectorAll("[data-add]").forEach(b=>b.addEventListener("click",()=>{
   const a=getMedia(b.dataset.add);if(!a)return;
   if(a.kind==="audio"){const item={id:uid(),mediaId:a.id,start:now,duration:a.duration,trim:0,volume:1};state.audios.push(item);selected={kind:"audio",id:item.id};}
-  else{const item={id:uid(),mediaId:a.id,start:videoEnd(),duration:a.kind==="image"?5:a.duration,trim:0};state.clips.push(item);reorder();selected={kind:"video",id:item.id};}
+  else{const item={id:uid(),mediaId:a.id,start:videoEnd(),duration:a.kind==="image"?5:a.duration,trim:0};state.clips.push(item);selected={kind:"video",id:item.id};}
   persist();
  }));
 }
 function selectClip(kind,id){selected={kind,id};redrawTimeline();renderInspector();}
 function getSelected(){if(!selected)return null;return ({video:state.clips,title:state.titles,caption:state.captions,audio:state.audios,sticker:state.stickers,effect:state.effects}[selected.kind]||[]).find(x=>x.id===selected.id);}
 const trackMap={video:"video-track",title:"text-track",sticker:"fx-track",effect:"fx-track",caption:"caption-track",audio:"audio-track"};
+function clipList(kind){return {video:state.clips,title:state.titles,sticker:state.stickers,effect:state.effects,caption:state.captions,audio:state.audios}[kind]||[];}
+function snapTime(v,precise){return Math.max(0,Math.round(v*(precise?100:10))/(precise?100:10));}
+function timelineDown(e,kind,id,mode){
+ if(e.button!==0||exportRecorder)return;
+ e.preventDefault();e.stopPropagation();
+ const c=clipList(kind).find(v=>v.id===id);if(!c)return;
+ stop();selected={kind,id};renderInspector();
+ timelineDrag={kind,id,mode,fromX:e.clientX,start:c.start,duration:c.duration,trim:c.trim||0,moved:false};
+}
+function timelineMove(e){
+ if(!timelineDrag)return;
+ const d=timelineDrag,c=clipList(d.kind).find(v=>v.id===d.id);if(!c)return;
+ const delta=(e.clientX-d.fromX)/num($("zoom").value,65),media=(d.kind==="video"||d.kind==="audio")?getMedia(c.mediaId):null;
+ const startMin=0.1,maxLength=media&&media.kind!=="image"?Math.max(.2,media.duration):3600;
+ if(Math.abs(e.clientX-d.fromX)<3&&!d.moved)return;
+ d.moved=true;
+ if(d.mode==="move"){c.start=snapTime(d.start+delta,e.shiftKey);}
+ else if(d.mode==="right"){const max=media&&media.kind!=="image"?Math.max(.2,media.duration-(d.trim||0)):3600;c.duration=clamp(snapTime(d.duration+delta,e.shiftKey),startMin,max);}
+ else if(d.mode==="left"){
+  const minDelta=d.kind==="video"&&media&&media.kind!=="image"?-(d.trim||0):-d.start;
+  const maxDelta=d.duration-startMin;
+  const adj=clamp(snapTime(Math.max(0,d.start+delta),e.shiftKey)-d.start,minDelta,maxDelta);
+  c.start=Math.max(0,d.start+adj);c.duration=clamp(d.duration-adj,startMin,3600);
+  if(media&&media.kind!=="image"&&(d.kind==="video"||d.kind==="audio"))c.trim=clamp(d.trim+adj,0,Math.max(0,media.duration-.1));
+ }
+ markDirty();redrawTimeline();draw(now);
+}
+function timelineUp(){
+ if(!timelineDrag)return;
+ const moved=timelineDrag.moved;timelineDrag=null;
+ if(moved){suppressClipClickUntil=performance.now()+350;persist();}else{redrawTimeline();renderInspector();}
+}
+document.addEventListener("pointermove",timelineMove);
+document.addEventListener("pointerup",timelineUp);
+document.addEventListener("pointercancel",timelineUp);
 function redrawTimeline(){
  const pixels=num($("zoom").value,65),length=duration(),width=Math.max($("track-scroll").clientWidth,length*pixels+110);
  $("track-inner").style.width=width+"px";
@@ -80,14 +116,16 @@ function redrawTimeline(){
    item.style.left=clip.start*pixels+"px";item.style.width=Math.max(11,clip.duration*pixels-3)+"px";
    item.title=(kind==="video"?getMedia(clip.mediaId)?.name:kind==="audio"?getMedia(clip.mediaId)?.name:kind==="sticker"?(clip.sticker==="emoji"?(clip.name||clip.emoji):PTSCreative.getSticker(clip.sticker)?.name):kind==="effect"?PTSCreative.getEffect(clip.effect)?.name:clip.text)||"Фрагмент";
    item.textContent=(kind==="video"?"▣ ":kind==="audio"?"♫ ":kind==="title"?"T ":kind==="sticker"?"✦ ":kind==="effect"?"FX ":"CC ")+(kind==="video"||kind==="audio"?(getMedia(clip.mediaId)?.name||"Немає файлу"):kind==="sticker"?(clip.sticker==="emoji"?(clip.emoji||"❤️")+" EMOJI":PTSCreative.getSticker(clip.sticker)?.name||"Стікер"):kind==="effect"?(PTSCreative.getEffect(clip.effect)?.name||"Ефект"):(clip.text||"Текст"));
-   item.addEventListener("click",e=>{e.stopPropagation();selectClip(kind,clip.id);seek(clip.start);});
-   if(kind==="video"){
-    item.draggable=true;
-    item.addEventListener("dragstart",()=>{dragClipId=clip.id;});
-    item.addEventListener("dragover",e=>e.preventDefault());
-    item.addEventListener("drop",e=>{e.preventDefault();if(!dragClipId||dragClipId===clip.id)return;const old=state.clips.findIndex(x=>x.id===dragClipId),target=state.clips.findIndex(x=>x.id===clip.id);if(old<0||target<0)return;const moved=state.clips.splice(old,1)[0];state.clips.splice(target,0,moved);reorder();dragClipId=null;persist();});
-    item.addEventListener("dragend",()=>dragClipId=null);
-   }
+   item.dataset.clipId=clip.id;
+   item.dataset.clipKind=kind;
+   item.innerHTML='<span class="clip-handle clip-handle-left" title="Підрізати початок" data-handle="left"></span>'+
+      '<span class="clip-label">'+h(item.textContent)+'</span>'+
+      '<span class="clip-handle clip-handle-right" title="Розширити / скоротити" data-handle="right"></span>';
+   item.addEventListener("click",e=>{
+    e.stopPropagation();if(performance.now()<suppressClipClickUntil)return;
+    selectClip(kind,clip.id);seek(Math.min(clip.start+.2,clip.start+clip.duration-.01));
+   });
+   item.addEventListener("pointerdown",e=>timelineDown(e,kind,clip.id,e.target.closest("[data-handle]")?.dataset.handle||"move"));
    track.appendChild(item);
   });
  });
@@ -150,11 +188,11 @@ function renderInspector(){
  inspectorInput("prop-duration",(obj,v)=>{
   const media=(selected.kind==="video"||selected.kind==="audio")?getMedia(obj.mediaId):null;
   const max=media?Math.max(.2,media.duration-obj.trim):3600;
-  obj.duration=clamp(num(v,obj.duration),.2,max);if(selected.kind==="video")reorder();
+  obj.duration=clamp(num(v,obj.duration),.2,max);
  });
  if(selected.kind==="video"||selected.kind==="audio")inspectorInput("prop-trim",(obj,v)=>{
   const media=getMedia(obj.mediaId);obj.trim=clamp(num(v,obj.trim),0,Math.max(0,(media?.duration||0)-.2));
-  obj.duration=Math.min(obj.duration,Math.max(.2,(media?.duration||.2)-obj.trim));if(selected.kind==="video")reorder();
+  obj.duration=Math.min(obj.duration,Math.max(.2,(media?.duration||.2)-obj.trim));
  });
  if(selected.kind==="audio")inspectorInput("prop-volume",(obj,v)=>{obj.volume=clamp(num(v,100)/100,0,2);const n=audioNodes.get(obj.id);if(n)n.gain.gain.value=obj.volume;});
  $("inspector-delete").onclick=removeSelected;
@@ -190,13 +228,13 @@ function removeSelected(){
  if(selected.kind==="sticker")state.stickers=state.stickers.filter(x=>x.id!==c.id);
  if(selected.kind==="effect")state.effects=state.effects.filter(x=>x.id!==c.id);
  if(selected.kind==="audio"){state.audios=state.audios.filter(x=>x.id!==c.id);const n=audioNodes.get(c.id);if(n){n.el.pause();n.el.src="";n.source.disconnect();audioNodes.delete(c.id);}}
- selected=null;reorder();persist();
+ selected=null;persist();
 }
 function splitSelected(){
  const c=getSelected();if(!c||selected.kind!=="video"){toast("Для розрізання обери відеофрагмент.");return;}
  const offset=now-c.start;if(offset<.15||offset>c.duration-.15){toast("Постав курсор всередині фрагмента.");return;}
  const second={...c,id:uid(),start:now,trim:c.trim+offset,duration:c.duration-offset};
- c.duration=offset;const ix=state.clips.findIndex(x=>x.id===c.id);state.clips.splice(ix+1,0,second);reorder();selected={kind:"video",id:second.id};persist();toast("Фрагмент розрізано");
+ c.duration=offset;const ix=state.clips.findIndex(x=>x.id===c.id);state.clips.splice(ix+1,0,second);selected={kind:"video",id:second.id};persist();toast("Фрагмент розрізано");
 }
 function moveSelected(dir){
  const c=getSelected();if(!c)return;
