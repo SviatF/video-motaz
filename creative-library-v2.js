@@ -38,7 +38,7 @@ const featuredIds=new Set(featuredItems.map(e=>e.id));
 const emojiOrdered=featuredItems.concat(emojiItems.filter(e=>!featuredIds.has(e.id)));
 function makePanel(node,actions){
  const state={tab:"emoji",category:"all",search:"",limit:96};
- const tabs=[["emoji","EMOJI"],["motions","АНІМАЦІЇ"],["stickers","СТІКЕРИ"],["overlays","ПОГОДА / VFX"],["effects","FX"],["music","МУЗИКА"]];
+ const tabs=[["emoji","EMOJI"],["motions","АНІМАЦІЇ"],["stickers","СТІКЕРИ"],["overlays","ПОГОДА / VFX"],["effects","FX"],["music","МУЗИКА"],["sfx","ЗВУКОВІ FX"]];
  node.innerHTML='<div class="asset-lib-toolbar">'+
   '<div class="asset-lib-nav" role="tablist" aria-label="Вкладки бібліотеки">'+
   tabs.map(t=>'<button type="button" data-library-tab="'+t[0]+'" role="tab" aria-selected="'+(t[0]===state.tab)+'" class="'+(t[0]===state.tab?'active':'')+'">'+t[1]+'</button>').join('')+
@@ -107,12 +107,22 @@ function makePanel(node,actions){
    results.querySelectorAll("[data-effect]").forEach(b=>b.onclick=()=>actions.addEffect(b.dataset.effect));
    return;
   }
-  const list=tools.MUSIC.filter(s=>matches(s.name+" "+s.category+" "+s.bpm));
-  results.innerHTML=header("ORIGINAL SYNTH LOOPS","МУЗИКА · "+list.length,"Без чужих аудіозаписів")+
-   '<div class="fx-grid">'+list.map(s=>'<div class="music-card"><button type="button" class="music-preview" aria-label="Прослухати '+safe(s.name)+'" data-preview="'+s.id+'">▶</button><span class="creative-text"><b>'+safe(s.name)+'</b><small>'+safe(s.category)+' · '+s.bpm+' BPM</small></span><button type="button" class="music-add" data-music="'+s.id+'" aria-label="Додати '+safe(s.name)+'">＋</button></div>').join('')+'</div>'+
-   '<p class="library-fineprint">Усі лупи створені нашим генератором, без семплів чужих хітів. Власну ліцензовану музику можна завантажити у вкладці «МЕДІА».</p>'+
-   '<div class="asset-lib-lead sound-heading"><div><span class="kicker">AUDIO FX / ORIGINAL</span><b>ЗВУКОВІ ЕФЕКТИ · '+tools.SFX.length+'</b></div><small>Whoosh · Pop · Impact · Notifications</small></div>'+
-   '<div class="fx-grid">'+tools.SFX.filter(s=>matches(s.name+" "+s.category)).map(s=>'<div class="music-card"><button type="button" class="music-preview" data-sfx-preview="'+s.id+'" aria-label="Прослухати '+safe(s.name)+'">▶</button><span class="creative-text"><b>'+safe(s.name)+'</b><small>'+safe(s.category)+' · '+s.seconds+' s</small></span><button type="button" class="music-add" data-sfx="'+s.id+'" aria-label="Додати '+safe(s.name)+'">＋</button></div>').join('')+'</div>';
+  const isSound=state.tab==="sfx";
+  if(!isSound){
+   const list=tools.MUSIC.filter(s=>matches(s.name+" "+s.category+" "+s.bpm));
+   results.innerHTML=header("ORIGINAL MUSIC / FULL LIBRARY","МУЗИКА · "+tools.MUSIC.length+" ТРЕКІВ","Прослуховування та додавання → таймлайн")+
+    '<div class="music-info">36 авторських музичних лупів. Для реальних треків, які ліцензовані для реклами, скористайся офіційними каталогами нижче та перевір дозволені платформи.</div>'+
+    '<div class="licensed-music-links"><a href="https://ads.tiktok.com/resources/help/article/how-to-use-the-commercial-music-library?lang=en" target="_blank" rel="noopener noreferrer">TikTok · Commercial Music ↗</a><a href="https://www.facebook.com/sound/collection/" target="_blank" rel="noopener noreferrer">Meta · Sound Collection ↗</a></div>'+
+    '<p class="music-license-note">Музика з платформ може бути ліцензована лише для їхніх власних майданчиків. Ми не завантажуємо й не копіюємо хіти автоматично. Ліцензований файл можна імпортувати у вкладці «МЕДІА».</p>'+
+    '<div class="fx-grid">'+list.map(s=>'<div class="music-card"><button type="button" class="music-preview" aria-label="Прослухати '+safe(s.name)+'" data-preview="'+s.id+'">▶</button><span class="creative-text"><b>'+safe(s.name)+'</b><small>'+safe(s.category)+' · '+s.bpm+' BPM</small></span><button type="button" class="music-add" data-music="'+s.id+'" aria-label="Додати '+safe(s.name)+'">＋</button></div>').join('')+'</div>'+
+    (!list.length?'<p class="asset-empty">Немає збігів. Очисти пошук, щоб побачити всі треки.</p>':'');
+  } else {
+   const list=tools.SFX.filter(s=>matches(s.name+" "+s.category));
+   results.innerHTML=header("SOUND DESIGN / ORIGINAL","ЗВУКОВІ ЕФЕКТИ · "+tools.SFX.length,"Whoosh · Pop · Impact · Notifications")+
+    '<div class="music-info">Окрема бібліотека коротких звукових акцентів, переходів, ударів і повідомлень.</div>'+
+    '<div class="fx-grid">'+list.map(s=>'<div class="music-card"><button type="button" class="music-preview" data-sfx-preview="'+s.id+'" aria-label="Прослухати '+safe(s.name)+'">▶</button><span class="creative-text"><b>'+safe(s.name)+'</b><small>'+safe(s.category)+' · '+s.seconds+' s</small></span><button type="button" class="music-add" data-sfx="'+s.id+'" aria-label="Додати '+safe(s.name)+'">＋</button></div>').join('')+'</div>'+
+    (!list.length?'<p class="asset-empty">Немає звукових ефектів за цим пошуком.</p>':'');
+  }
   results.querySelectorAll("[data-music]").forEach(b=>b.onclick=async()=>{b.disabled=true;b.textContent="…";try{await actions.addMusic(await tools.musicFile(b.dataset.music));}catch(e){actions.error("Помилка музики: "+e.message);}finally{if(b.isConnected){b.disabled=false;b.textContent="＋";}}});
   results.querySelectorAll("[data-sfx]").forEach(b=>b.onclick=async()=>{
    b.disabled=true;b.textContent="…";
@@ -142,7 +152,7 @@ function makePanel(node,actions){
    }catch(e){stopAudio();actions.error("Не вдалося програти: "+e.message);if(b.isConnected){b.disabled=false;b.textContent="▶";}}
   });
  }
- function open(tab){state.tab=tab;state.category="all";state.limit=96;stopAudio();
+ function open(tab){state.tab=tab;state.category="all";state.limit=96;state.search="";search.value="";stopAudio();
   node.querySelectorAll("[data-library-tab]").forEach(b=>{const active=b.dataset.libraryTab===tab;b.classList.toggle("active",active);b.setAttribute("aria-selected",String(active));});
   redraw();
  }
