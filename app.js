@@ -192,7 +192,7 @@ function inspectorInput(id,fn){const el=$(id);if(el)el.addEventListener("change"
 });}
 const ASR_PREFS_KEY="pts-asr-prefs-v1";
 let asrPrefs=(()=>{try{return {...{language:"auto",quality:"balanced",style:"highlight"},...JSON.parse(localStorage.getItem(ASR_PREFS_KEY)||"{}")};}catch(_){return {language:"auto",quality:"balanced",style:"highlight"};}})();
-let asrLastStatus="",asrLastSummary="";
+let asrLastStatus="",asrLastSummary="",asrLastSourceId=null;
 function saveAsrPrefs(){try{localStorage.setItem(ASR_PREFS_KEY,JSON.stringify(asrPrefs));}catch(_){}}
 function renderInspector(){
  const node=$("inspector"),c=getSelected();
@@ -295,15 +295,17 @@ function renderInspector(){
    el.onchange=()=>{asrPrefs[key]=el.value;saveAsrPrefs();};
   }
   $("generate-captions").onclick=generateCaptions;
-  if(asrLastStatus)smartStatus(asrLastStatus);
-  if(asrLastSummary){$("caption-summary").hidden=false;$("caption-summary").textContent=asrLastSummary;}
+  if(c.mediaId===asrLastSourceId){
+   if(asrLastStatus)smartStatus(asrLastStatus);
+   if(asrLastSummary){$("caption-summary").hidden=false;$("caption-summary").textContent=asrLastSummary;}
+  }
   const clear=$("clear-auto-captions");
   if(clear)clear.onclick=()=>{
    const c=getSelected(),sourceId=c?.mediaId;if(!sourceId)return;
    const before=state.captions.length;
    state.captions=state.captions.filter(x=>!(x.automatic&&x.sourceId===sourceId));
    state.captionRegions=(state.captionRegions||[]).filter(x=>x.sourceId!==sourceId);
-   asrLastSummary="";asrLastStatus="";
+   asrLastSummary="";asrLastStatus="";asrLastSourceId=null;
    persist();toast("Видалено автосубтитри: "+(before-state.captions.length));
   };
  }
@@ -817,6 +819,7 @@ async function generateCaptions(){
  try{
   stop();
   const source=sourceFile(),isVideo=source.meta.kind==="video";
+  asrLastSourceId=source.id;asrLastSummary="";
   smartStatus(isVideo?"Підготовка відео: звук буде витягнуто на пристрої.":"Підготовка аудіозапису…");
   const file=isVideo
    ?await PTSVideoAudio.audioFromVideo(source.url,{limit:600,onProgress:smartStatus})
