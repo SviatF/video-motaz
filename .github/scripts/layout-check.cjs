@@ -70,7 +70,7 @@ const cases=[
         }));
         if(engines.motion!=='function'||engines.beat!=='function'||engines.speech!=='function')issues.push('new editing engines not loaded: '+JSON.stringify(engines));
         if(!await page.locator('#analyze-beats').count())issues.push('beat detection UI missing');
-        if(!await page.locator('#generate-captions').count())issues.push('Whisper captions UI missing');
+        if(!await page.locator('#video-caption-template').count())issues.push('Contextual video caption template missing');
         if(!await page.locator('#key-add').count())issues.push('keyframe controls missing');
         else{
           await page.locator('#key-add').click();
@@ -329,6 +329,9 @@ const cases=[
       localStorage.setItem('pts-creative-project-v1',JSON.stringify(project));
     });
     await capPage.reload({waitUntil:'load'});
+    if(await capPage.locator('#generate-captions').count())throw Error('Caption controls should not clutter media sidebar without a selected clip');
+    await capPage.locator('#video-track .clip').first().click();
+    if(!await capPage.locator('#inspector #generate-captions').count())throw Error('Video inspector has no auto-captions action');
     if(!await capPage.locator('#auto-caption-quality').count())throw Error('ASR quality picker missing');
     if(await capPage.locator('#auto-caption-quality').inputValue()!=='balanced')throw Error('Upgraded Whisper Base is not the default');
     const qualityTests=await capPage.evaluate(()=>{
@@ -339,16 +342,22 @@ const cases=[
         {text:' Thank you for watching this video.',start:15,duration:1.5,words:[]}
       ]);
       const boilerplateOnly=asr.inspectTranscript([{text:' Thank you for watching this video.',start:0,duration:2,words:[]}]);
+      const badWord='Wytokokokokokokokokokokokokokokokoko';
+      const repetitive=asr.inspectTranscript([{text:badWord,start:0,duration:7,words:[]}]);
+      const goodPolish=asr.inspectTranscript([{text:'Ten zabieg odmładza skórę i poprawia jej wygląd.',start:0,duration:3,words:[]}]);
       return {
         models:Object.keys(asr.MODELS),
         rejected:rejected.warnings.length,
         kept:rejected.captions.length,
         keptText:rejected.captions[0]?.text,
         only:boilerplateOnly.captions.length,
+        gibberishRejected:repetitive.warnings.length,
+        gibberishKept:repetitive.captions.length,
+        polishKept:goodPolish.captions.length,
         mode:asr.modelOptions('pl')
       };
     });
-    if(qualityTests.rejected!==2||qualityTests.kept!==1||qualityTests.only!==0||qualityTests.mode.language!=='polish'||qualityTests.models.length!==3){
+    if(qualityTests.rejected!==2||qualityTests.kept!==1||qualityTests.only!==0||qualityTests.mode.language!=='polish'||qualityTests.models.length!==3||qualityTests.gibberishRejected!==1||qualityTests.gibberishKept!==0||qualityTests.polishKept!==1){
       throw Error('ASR hallucination filter or model selection failed: '+JSON.stringify(qualityTests));
     }
     if(!(await capPage.locator('#auto-caption-language').count()))throw Error('Language selection is missing');
@@ -394,6 +403,8 @@ const cases=[
     if(speech.some(c=>c.start+c.duration>3))throw Error('Subtitles invented speech in silent tail');
     if(!(await capPage.locator('#smart-progress-title').count()))throw Error('Compact progress display missing');
     if(await capPage.locator('#smart-progress-title').textContent()!=='СУБТИТРИ СТВОРЕНО')throw Error('Status summary is not compact');
+    if(!await capPage.locator('#inspector #generate-captions').count())throw Error('Video clip inspector no longer shows transcription action');
+    await capPage.locator('#caption-track .clip').first().click();
     if(!(await capPage.locator('#caption-font').count()))throw Error('Typography controls not available');
     await capPage.locator('#caption-font').selectOption('impact');
     await capPage.locator('#caption-size').fill('7');
@@ -405,6 +416,9 @@ const cases=[
     if(capErrors.length)throw Error('Auto-caption browser errors: '+capErrors.join(' | '));
     await capPage.reload({waitUntil:'load'});
     if(await capPage.locator('#caption-track .clip').count()!==2)throw Error('Automatic subtitles lost after reload');
+    await capPage.locator('#video-track .clip').first().click();
+    if(!await capPage.locator('#inspector #clear-auto-captions').count())throw Error('Per-video caption removal button missing');
+
     if(await capPage.locator('.caption-region').count()!==1)throw Error('Full-length caption region lost after reload');
     console.log('Polish auto-subtitles QA PASS: original soundtrack extracted, full 20s group, two timed captions, typography persisted');
     await capPage.close();
