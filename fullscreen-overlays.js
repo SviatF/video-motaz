@@ -8,7 +8,7 @@ const PRESETS=[
  {id:"snow",name:"Cinematic Snowfall",desc:"Білий сніг із глибиною",icon:"❄",tag:"WINTER",tint:"#f3f8ff"},
  {id:"snowstorm",name:"Snowstorm",desc:"Густий сніг і вітер",icon:"🌨",tag:"WINTER",tint:"#dceeff"},
  {id:"embers",name:"Fire Embers",desc:"Жаринки, що піднімаються",icon:"🔥",tag:"FIRE",tint:"#ff9347"},
- {id:"fire",name:"Flame Rise",desc:"Палаючий нижній край",icon:"♨",tag:"FIRE",tint:"#ff5c20"},
+ {id:"fire",name:"Flame Rise",desc:"Тепле полум’я і жаринки по всій площині",icon:"♨",tag:"FIRE",tint:"#ff5c20"},
  {id:"rain",name:"Night Rain",desc:"Кінематографічні краплі",icon:"☂",tag:"WEATHER",tint:"#bcdafa"},
  {id:"fog",name:"Cinematic Fog",desc:"М'який рухомий туман",icon:"☁",tag:"ATMOSPHERE",tint:"#c2c4d2"},
  {id:"dust",name:"Golden Dust",desc:"Теплі світлові порошинки",icon:"✧",tag:"ATMOSPHERE",tint:"#f4c183"},
@@ -56,7 +56,7 @@ function particle(ctx,w,h,layer,t){
  const seed=Number.isFinite(+layer.seed)?+layer.seed:5.75;
  const local=Math.max(0,t-layer.start)*speed;
  // Stable particles are drawn from time and an index, not previous frames.
- const mult=(id==="rain"||id==="snowstorm")?180:(id==="fog"?24:(id==="lightleak"?8:115));
+ const mult=(id==="snowstorm"||id==="snow")?290:(id==="rain"?220:(id==="fog"?28:(id==="lightleak"?14:165)));
  const count=Math.min(360,Math.max(2,Math.round(mult*amount)));
  const basis=Math.min(w,h),rate=local;
  ctx.save();
@@ -74,9 +74,10 @@ function particle(ctx,w,h,layer,t){
  }
  if(id==="lightleak"){
   for(let i=0;i<count;i++){
-   const x=(.15+.7*rand(i,1,seed)+Math.sin(rate*.21+i)*.18)*w;
-   const y=(-.2+.55*rand(i,2,seed))*h;
-   const r=basis*(.3+.33*rand(i,3,seed))*sz;
+   // Cover the entire frame rather than restricting highlights to its top edge.
+   const x=((i%4+.3+rand(i,1,seed)*.4)/4+Math.sin(rate*.21+i)*.08)*w;
+   const y=((Math.floor(i/4)+.2+rand(i,2,seed)*.6)/Math.ceil(count/4)+Math.cos(rate*.16+i)*.09)*h;
+   const r=Math.max(w,h)*(.28+.25*rand(i,3,seed))*sz;
    const g=ctx.createRadialGradient(x,y,0,x,y,r);
    g.addColorStop(0,rgba(c,opacity*.14));g.addColorStop(.52,rgba(c,opacity*.035));g.addColorStop(1,rgba(c,0));
    ctx.fillStyle=g;ctx.fillRect(x-r,y-r,r*2,r*2);
@@ -84,23 +85,32 @@ function particle(ctx,w,h,layer,t){
   ctx.restore();return;
  }
  if(id==="fire"){
-  const heat=ctx.createLinearGradient(0,h,0,h*.4);
-  heat.addColorStop(0,rgba(c,opacity*.34*amount));heat.addColorStop(.4,rgba(c,opacity*.08));heat.addColorStop(1,rgba(c,0));
-  ctx.fillStyle=heat;ctx.fillRect(0,h*.35,w,h*.65);
+  // Ambient warmth spans the entire frame, while brighter tongues move over it.
+  const heat=ctx.createLinearGradient(0,h,0,0);
+  heat.addColorStop(0,rgba(c,opacity*.21*amount));
+  heat.addColorStop(.45,rgba(c,opacity*.075*amount));
+  heat.addColorStop(1,rgba(c,opacity*.024*amount));
+  ctx.fillStyle=heat;ctx.fillRect(0,0,w,h);
  }
  for(let i=0;i<count;i++){
   const a=rand(i,1,seed),b=rand(i,2,seed),d=rand(i,3,seed),e=rand(i,4,seed);
   const alpha=opacity*(.32+.67*e),depth=.4+.6*d;
-  let x,y,r,phase,falling,rv;
-  if(["snow","snowstorm","rain","confetti","petals","ash"].includes(id)){
-   rv=id==="rain"?1.55:(id==="snowstorm"?.5:(id==="confetti"?.3:.12));
-   falling=(rate*rv*(.4+depth)+b)%1.45;
-   x=((a+rate*(id==="snowstorm"?.19:id==="rain"?.08:.012)*(1+depth)+Math.sin(rate*.6+i)*.017)%1.55-.2)*w;
-   y=(falling-.2)*h;
+  let x,y,r;
+  // Spatially distributed particles fill the video both horizontally and
+  // vertically. Seeded per-cell jitter removes obvious grid patterns.
+  const cols=Math.max(5,Math.round(Math.sqrt(count*w/h)));
+  const rows=Math.ceil(count/cols),col=i%cols,row=Math.floor(i/cols);
+  const baseX=(col+.15+.7*a)/cols;
+  const baseY=(row+.15+.7*b)/rows;
+  const downward=["snow","snowstorm","rain","confetti","petals","ash"].includes(id);
+  const speedY=(id==="rain"?.82:id==="snowstorm"?.24:id==="snow"?.13:id==="confetti"?.19:.09);
+  if(downward){
+    const drift=rate*speedY*(.7+.65*d);
+    y=((baseY+drift)%1)*h;
+    x=(((baseX+rate*(id==="snowstorm"?.06:id==="rain"?.023:.006)*(1+d)+Math.sin(rate*.7+i)*.009)%1+1)%1)*w;
   }else{
-   x=(a+Math.sin(rate*.6+i*3)*.023)*w;
-   y=((b-rate*(id==="embers"||id==="fire"?.16:.07)*(depth*.9+.3))%1.3+1.3)%1.3*h;
-   if(y>h*1.12)y-=h*1.3;
+    y=((baseY-rate*(id==="fire"?.12:id==="embers"?.085:.045)*(.5+d))%1+1)%1*h;
+    x=(((baseX+Math.sin(rate*.55+i*3)*.013)%1+1)%1)*w;
   }
   if(id==="snow"||id==="snowstorm"){
    r=(1+3*d)*sz*depth*(basis/720);x+=Math.sin(rate*.9+i)*w*.012*depth;
@@ -109,8 +119,8 @@ function particle(ctx,w,h,layer,t){
    ctx.strokeStyle=rgba(c,alpha*.5);ctx.lineWidth=Math.max(.65,1.3*depth*basis/900);
    ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-w*.006*(.5+depth),y+h*(.022+.026*depth)*sz);ctx.stroke();
   }else if(id==="embers"||id==="fire"){
-   if(id==="fire"&&y<h*.15)continue;
-   r=(1+3.3*d)*sz*(basis/720);dot(ctx,x,y,r,c,alpha*(id==="fire"?.9:.8),true);
+   // Fullscreen fire is intentionally not clipped at the upper edge.
+   r=(2+4.6*d)*sz*(basis/720);dot(ctx,x,y,r,c,alpha*(id==="fire"?.98:.8),true);
    if(id==="fire"&&i%5===0){
     ctx.strokeStyle=rgba(c,alpha*.3);ctx.lineWidth=r*.45;
     ctx.beginPath();ctx.moveTo(x,y+r*4);ctx.quadraticCurveTo(x+Math.sin(rate*3+i)*7,y+r,x+2*Math.sin(rate+i),y-r*5);ctx.stroke();
