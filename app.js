@@ -11,7 +11,7 @@ let selected = null, now = 0, playing = false, frame = 0, startedAt = 0, started
 let exportRecorder = null, exportCancelled = false, micRecorder = null, micStream = null;
 let dragClipId = null, toastTimeout = null, loading = false;
 let timelineDrag = null, suppressClipClickUntil = 0, canvasDrag = null;
-let state = {version:1,name:"Рекламний креатив 01",ratio:"9:16",media:[],clips:[],titles:[],captions:[],audios:[],stickers:[],effects:[]};
+let state = {version:1,name:"Рекламний креатив 01",ratio:"9:16",media:[],clips:[],titles:[],captions:[],audios:[],stickers:[],effects:[],overlays:[]};
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(36));
 const clamp = (x,a,b) => Math.min(b,Math.max(a,x));
 const num = (v,d=0) => Number.isFinite(Number(v)) ? Number(v) : d;
@@ -20,7 +20,7 @@ const h = t => String(t).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"
 const fmt = n => (Math.round(n*10)/10).toFixed(1);
 function toast(message){const el=$("toast");el.textContent=message;el.classList.add("visible");clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>el.classList.remove("visible"),3200);}
 function getMedia(id){return state.media.find(x=>x.id===id);}
-function duration(){const ends=[...state.clips.map(x=>x.start+x.duration),...state.titles.map(x=>x.start+x.duration),...state.captions.map(x=>x.start+x.duration),...state.audios.map(x=>x.start+x.duration),...state.stickers.map(x=>x.start+x.duration),...state.effects.map(x=>x.start+x.duration)];return Math.max(state.clips.length||state.titles.length||state.captions.length||state.audios.length||state.stickers.length||state.effects.length?1:8,...ends);}
+function duration(){const ends=[...state.clips.map(x=>x.start+x.duration),...state.titles.map(x=>x.start+x.duration),...state.captions.map(x=>x.start+x.duration),...state.audios.map(x=>x.start+x.duration),...state.stickers.map(x=>x.start+x.duration),...state.effects.map(x=>x.start+x.duration),...state.overlays.map(x=>x.start+x.duration)];return Math.max(state.clips.length||state.titles.length||state.captions.length||state.audios.length||state.stickers.length||state.effects.length||state.overlays.length?1:8,...ends);}
 function videoEnd(){return state.clips.reduce((t,c)=>Math.max(t,c.start+c.duration),0);}
 function reorder(){let at=0;state.clips.forEach(c=>{c.start=at;at+=c.duration;});}
 function store(){state.name=$("project-name").value||"Без назви";try{localStorage.setItem(PROJECT_KEY,JSON.stringify(state));$("save-status").textContent="Збережено локально";}catch(e){toast("Не вдалось зберегти метадані: "+e.message);}}
@@ -64,9 +64,9 @@ function renderAssets(){
  }));
 }
 function selectClip(kind,id){selected={kind,id};redrawTimeline();renderInspector();}
-function getSelected(){if(!selected)return null;return ({video:state.clips,title:state.titles,caption:state.captions,audio:state.audios,sticker:state.stickers,effect:state.effects}[selected.kind]||[]).find(x=>x.id===selected.id);}
-const trackMap={video:"video-track",title:"text-track",sticker:"fx-track",effect:"fx-track",caption:"caption-track",audio:"audio-track"};
-function clipList(kind){return {video:state.clips,title:state.titles,sticker:state.stickers,effect:state.effects,caption:state.captions,audio:state.audios}[kind]||[];}
+function getSelected(){if(!selected)return null;return ({video:state.clips,title:state.titles,caption:state.captions,audio:state.audios,sticker:state.stickers,effect:state.effects,overlay:state.overlays}[selected.kind]||[]).find(x=>x.id===selected.id);}
+const trackMap={video:"video-track",title:"text-track",sticker:"fx-track",effect:"fx-track",overlay:"overlay-track",caption:"caption-track",audio:"audio-track"};
+function clipList(kind){return {video:state.clips,title:state.titles,sticker:state.stickers,effect:state.effects,overlay:state.overlays,caption:state.captions,audio:state.audios}[kind]||[];}
 function snapTime(v,precise){return Math.max(0,Math.round(v*(precise?100:10))/(precise?100:10));}
 function timelineDown(e,kind,id,mode){
  if(e.button!==0||exportRecorder)return;
@@ -108,15 +108,15 @@ function redrawTimeline(){
  $("ruler").innerHTML="";
  for(let t=0;t<=Math.ceil(width/pixels);t+=2){const tick=document.createElement("span");tick.className="tick";tick.style.left=t*pixels+"px";tick.textContent=timecode(t).slice(0,5);$("ruler").appendChild(tick);}
  Object.values(trackMap).forEach(id=>$(id).innerHTML="");
- const groups={video:state.clips,title:state.titles,sticker:state.stickers,effect:state.effects,caption:state.captions,audio:state.audios};
+ const groups={video:state.clips,title:state.titles,sticker:state.stickers,effect:state.effects,overlay:state.overlays,caption:state.captions,audio:state.audios};
  Object.keys(groups).forEach(kind=>{
   const list=groups[kind],track=$(trackMap[kind]);
   list.forEach(clip=>{
    const item=document.createElement("button");item.type="button";
    item.className="clip "+kind+(selected&&selected.id===clip.id?" selected":"");
    item.style.left=clip.start*pixels+"px";item.style.width=Math.max(11,clip.duration*pixels-3)+"px";
-   item.title=(kind==="video"?getMedia(clip.mediaId)?.name:kind==="audio"?getMedia(clip.mediaId)?.name:kind==="sticker"?(clip.sticker==="emoji"?(clip.name||clip.emoji):PTSCreative.getSticker(clip.sticker)?.name):kind==="effect"?PTSCreative.getEffect(clip.effect)?.name:clip.text)||"Фрагмент";
-   item.textContent=(kind==="video"?"▣ ":kind==="audio"?"♫ ":kind==="title"?"T ":kind==="sticker"?"✦ ":kind==="effect"?"FX ":"CC ")+(kind==="video"||kind==="audio"?(getMedia(clip.mediaId)?.name||"Немає файлу"):kind==="sticker"?(clip.sticker==="emoji"?(clip.emoji||"❤️")+" EMOJI":PTSCreative.getSticker(clip.sticker)?.name||"Стікер"):kind==="effect"?(PTSCreative.getEffect(clip.effect)?.name||"Ефект"):(clip.text||"Текст"));
+   item.title=(kind==="video"?getMedia(clip.mediaId)?.name:kind==="audio"?getMedia(clip.mediaId)?.name:kind==="sticker"?(clip.sticker==="emoji"?(clip.name||clip.emoji):PTSCreative.getSticker(clip.sticker)?.name):kind==="effect"?PTSCreative.getEffect(clip.effect)?.name:kind==="overlay"?PTSOverlays.getPreset(clip.overlay)?.name:clip.text)||"Фрагмент";
+   item.textContent=(kind==="video"?"▣ ":kind==="audio"?"♫ ":kind==="title"?"T ":kind==="sticker"?"✦ ":kind==="effect"?"FX ":kind==="overlay"?"❄ ":"CC ")+(kind==="video"||kind==="audio"?(getMedia(clip.mediaId)?.name||"Немає файлу"):kind==="sticker"?(clip.sticker==="emoji"?(clip.emoji||"❤️")+" EMOJI":PTSCreative.getSticker(clip.sticker)?.name||"Стікер"):kind==="effect"?(PTSCreative.getEffect(clip.effect)?.name||"Ефект"):kind==="overlay"?(PTSOverlays.getPreset(clip.overlay)?.name||"Overlay"):(clip.text||"Текст"));
    item.dataset.clipId=clip.id;
    item.dataset.clipKind=kind;
    item.innerHTML='<span class="clip-handle clip-handle-left" title="Підрізати початок" data-handle="left"></span>'+
@@ -139,7 +139,7 @@ function inspectorInput(id,fn){const el=$(id);if(el)el.addEventListener("change"
 function renderInspector(){
  const node=$("inspector"),c=getSelected();
  if(!c){node.innerHTML='<p class="hint">Обери фрагмент на таймлайні, щоб налаштувати його параметри.</p>';return;}
- const labels={video:"ВІДЕО / ФОТО",title:"АНІМОВАНИЙ ТЕКСТ",caption:"СУБТИТРИ",audio:"АУДІО / ОЗВУЧКА",sticker:"СТІКЕР / CTA",effect:"MOTION FX"};
+ const labels={video:"ВІДЕО / ФОТО",title:"АНІМОВАНИЙ ТЕКСТ",caption:"СУБТИТРИ",audio:"АУДІО / ОЗВУЧКА",sticker:"СТІКЕР / CTA",effect:"MOTION FX",overlay:"FULLSCREEN MOTION"};
  let html='<h3>'+(labels[selected.kind]||"ЕЛЕМЕНТ")+'</h3>';
  if(selected.kind==="video"||selected.kind==="audio"){const m=getMedia(c.mediaId);html+='<div class="mini">'+h(m?.name||"Медіа недоступне")+'</div>';}
  const editableText=selected.kind==="title"||selected.kind==="caption"||(selected.kind==="sticker"&&["sale","shop","new"].includes(c.sticker));
@@ -165,6 +165,16 @@ function renderInspector(){
   html+=field("ПОВОРОТ, °","prop-rotation",c.rotation,'type="number" min="-360" max="360" step="5"');
   if(c.sticker!=="emoji")html+='<div class="field"><label for="prop-color">КОЛІР СТІКЕРА</label><input type="color" id="prop-color" value="'+h(c.color||"#ffffff")+'"></div>';
  }
+ if(selected.kind==="overlay"){
+  const meta=PTSOverlays.getPreset(c.overlay);
+  html+='<p class="overlay-help">Ефект охоплює весь відеокадр. Натисни «На всю довжину» для повного ролика або змінюй краї кліпу на таймлайні.</p>';
+  html+='<div class="mini">'+h(meta?.name||c.overlay)+' · '+h(meta?.tag||"")+'</div>';
+  html+=field("ІНТЕНСИВНІСТЬ, %","prop-density",c.intensity??65,'type="number" min="5" max="150" step="5"');
+  html+=field("ШВИДКІСТЬ, X","prop-overlay-speed",c.speed??1,'type="number" min=".05" max="5" step=".1"');
+  html+=field("РОЗМІР ЧАСТИНОК, %","prop-overlay-size",c.size??100,'type="number" min="20" max="300" step="10"');
+  html+=field("ПРОЗОРІСТЬ, %","prop-opacity",c.opacity??75,'type="number" min="0" max="100" step="5"');
+  html+='<div class="field"><label for="prop-overlay-color">КОЛІР ЕФЕКТУ</label><input id="prop-overlay-color" type="color" value="'+h(c.tint||meta?.tint||"#ffffff")+'"></div>';
+ }
  if(selected.kind==="effect"){
   html+='<div class="mini">'+h(PTSCreative.getEffect(c.effect)?.desc||"Ефект кадру")+'</div>';
   html+=field("ІНТЕНСИВНІСТЬ, %","prop-intensity",c.intensity,'type="number" min="0" max="150" step="5"');
@@ -189,6 +199,13 @@ function renderInspector(){
   inspectorInput("prop-scale",(obj,v)=>obj.scale=clamp(num(v,obj.scale),3,90));
   inspectorInput("prop-rotation",(obj,v)=>obj.rotation=clamp(num(v,obj.rotation),-360,360));
   inspectorInput("prop-color",(obj,v)=>obj.color=v);
+ }
+ if(selected.kind==="overlay"){
+  inspectorInput("prop-density",(obj,v)=>obj.intensity=clamp(num(v,obj.intensity),5,150));
+  inspectorInput("prop-overlay-speed",(obj,v)=>obj.speed=clamp(num(v,obj.speed),.05,5));
+  inspectorInput("prop-overlay-size",(obj,v)=>obj.size=clamp(num(v,obj.size),20,300));
+  inspectorInput("prop-opacity",(obj,v)=>obj.opacity=clamp(num(v,obj.opacity),0,100));
+  inspectorInput("prop-overlay-color",(obj,v)=>obj.tint=v);
  }
  if(selected.kind==="effect")inspectorInput("prop-intensity",(obj,v)=>obj.intensity=clamp(num(v,obj.intensity),0,150));
  if(selected.kind!=="video")inspectorInput("prop-start",(obj,v)=>obj.start=Math.max(0,num(v,obj.start)));
@@ -244,6 +261,12 @@ function addEffect(id){
  const obj={id:uid(),effect:id,start:now,duration:preset.duration,intensity:65};
  state.effects.push(obj);selected={kind:"effect",id:obj.id};persist();toast(preset.name+" додано");
 }
+function addOverlay(id){
+ const meta=PTSOverlays.getPreset(id);if(!meta)return;
+ const base=videoEnd()||duration()||8;
+ const layer={id:uid(),overlay:id,start:now,duration:Math.max(.5,base-now),intensity:65,speed:1,size:100,opacity:80,tint:meta.tint,seed:Math.floor(Math.random()*100000)};
+ state.overlays.push(layer);selected={kind:"overlay",id:layer.id};persist();seek(Math.min(layer.start+.15,layer.start+layer.duration-.01));toast(meta.name+" — ефект на весь екран");
+}
 function addCaption(){const obj={id:uid(),text:"Ваш текст субтитрів",start:now,duration:3};state.captions.push(obj);selected={kind:"caption",id:obj.id};persist();}
 function removeSelected(){
  const c=getSelected();if(!c)return;
@@ -252,6 +275,7 @@ function removeSelected(){
  if(selected.kind==="caption")state.captions=state.captions.filter(x=>x.id!==c.id);
  if(selected.kind==="sticker")state.stickers=state.stickers.filter(x=>x.id!==c.id);
  if(selected.kind==="effect")state.effects=state.effects.filter(x=>x.id!==c.id);
+ if(selected.kind==="overlay")state.overlays=state.overlays.filter(x=>x.id!==c.id);
  if(selected.kind==="audio"){state.audios=state.audios.filter(x=>x.id!==c.id);const n=audioNodes.get(c.id);if(n){n.el.pause();n.el.src="";n.source.disconnect();audioNodes.delete(c.id);}}
  selected=null;persist();
 }
@@ -415,6 +439,8 @@ function draw(t){
  }else{video.pause();if(!state.clips.length&&!state.titles.length&&!state.captions.length&&!state.stickers.length&&!state.effects.length){ctx.fillStyle="#f4f4f4";ctx.font="900 "+Math.round(w*.095)+"px Arial";ctx.textAlign="center";ctx.fillText("PTS",w/2,hh/2-20);ctx.fillStyle="#888";ctx.font=Math.round(w*.026)+"px Arial";ctx.fillText("UPLOAD MEDIA TO BEGIN",w/2,hh/2+28);}}
  ctx.restore();
  PTSCreative.afterFrame(ctx,w,hh,activeEffects,now);
+ state.overlays.filter(c=>now>=c.start&&now<c.start+c.duration)
+   .forEach(c=>PTSOverlays.draw(ctx,w,hh,c,now));
  state.titles.filter(c=>now>=c.start&&now<c.start+c.duration).forEach(drawText);
  state.stickers.filter(c=>now>=c.start&&now<c.start+c.duration).forEach(c=>PTSCreative.drawSticker(ctx,w,hh,c,now));
  state.captions.filter(c=>now>=c.start&&now<c.start+c.duration).forEach(drawCaption);
@@ -527,7 +553,7 @@ async function boot(){
  try{
   db=await createDB();
   const old=JSON.parse(localStorage.getItem(PROJECT_KEY)||"null");
-  if(old&&old.version===1){state={...state,...old,stickers:Array.isArray(old.stickers)?old.stickers:[],effects:Array.isArray(old.effects)?old.effects:[]};}
+  if(old&&old.version===1){state={...state,...old,stickers:Array.isArray(old.stickers)?old.stickers:[],effects:Array.isArray(old.effects)?old.effects:[],overlays:Array.isArray(old.overlays)?old.overlays:[]};}
   const all=await allBlobs();for(const a of all)assetUrls.set(a.id,URL.createObjectURL(a.file));
   $("project-name").value=state.name;$("ratio").value=state.ratio;
   redraw();seek(0);
@@ -547,7 +573,7 @@ $("library-expand").addEventListener("click",()=>{
  $("library-expand").textContent=wide?"⤡":"⤢";
 });
 PTSCreative.makePanel($("creative-library"),{
-  addSticker,addEffect,addEmoji,addMotion,
+  addSticker,addEffect,addEmoji,addMotion,addOverlay,
   addMusic:async file=>{await importFiles([file]);toast("Музику додано на аудіодоріжку");},
   error:toast
  });
