@@ -537,55 +537,78 @@ selectionBox.addEventListener("pointercancel",finishCanvasDrag);
 selectionBox.addEventListener("lostpointercapture",finishCanvasDrag);
 function drawCaption(x){
  const progress=clamp((now-x.start)/Math.max(.1,x.duration),0,1),style=x.style||"classic";
- const w=canvas.width,h=canvas.height;
- const fontSize=Math.round(w*(style==="bold"?.06:.045)),font=(style==="bold"?"900 ":"800 ")+fontSize+"px Arial, sans-serif";
- const lines=breakLines(x.text,w*.85,font).slice(0,4),lineHeight=fontSize*1.32;
- const y=h*.82-(lines.length-1)*lineHeight/2,pad=fontSize*.32;
- ctx.save();ctx.textAlign="center";ctx.textBaseline="middle";ctx.font=font;
- if(style==="classic"){
-  ctx.fillStyle="rgba(0,0,0,.78)";
-  ctx.fillRect(w*.055,y-fontSize*.65-pad,w*.89,lines.length*lineHeight+pad*1.8);
+ const w=canvas.width,hh=canvas.height;
+ const fontNames={arial:'Arial, sans-serif',impact:'Impact, "Arial Black", sans-serif',
+  black:'"Arial Black", Arial, sans-serif',trebuchet:'"Trebuchet MS", Arial, sans-serif',
+  verdana:'Verdana, sans-serif',georgia:'Georgia, serif'};
+ const fontSize=Math.round(w*clamp(num(x.fontSize,style==="bold"?6:4.8),2.3,12)/100);
+ const family=fontNames[x.fontFamily]||fontNames.arial;
+ const font=(style==="bold"?"900 ":"800 ")+fontSize+"px "+family;
+ const lines=breakLines(String(x.text||""),w*.86,font).slice(0,4);
+ if(!lines.length)return;
+ const lineHeight=fontSize*1.3;
+ const y=hh*clamp(num(x.placement,82),15,95)/100-(lines.length-1)*lineHeight/2;
+ const pad=fontSize*.35,animation=x.animation||"none";
+ const enter=clamp((now-x.start)/.23,0,1);
+ ctx.save();ctx.font=font;ctx.textAlign="center";ctx.textBaseline="middle";
+ const opacity=animation==="fade"||animation==="pop"||animation==="slide"?enter:1;
+ ctx.globalAlpha*=opacity;
+ if(animation==="pop"){
+  const scale=.8+.2*(1-Math.pow(1-enter,3));
+  ctx.translate(w/2,y);ctx.scale(scale,scale);ctx.translate(-w/2,-y);
+ }else if(animation==="slide"){
+  ctx.translate(0,(1-enter)*hh*.033);
  }
- if(style==="bold"){
-  ctx.translate(w/2,y);
-  const scale=.95+.05*Math.min(1,progress*7);ctx.scale(scale,scale);ctx.translate(-w/2,-y);
+ const bg=x.background|| (style==="classic"?"box":"none");
+ if(bg!=="none"){
+  let maxWidth=0;for(const line of lines)maxWidth=Math.max(maxWidth,ctx.measureText(line).width);
+  const bw=bg==="box"?w*.92:Math.min(w*.93,maxWidth+pad*3.2),
+    bh=lines.length*lineHeight+pad*2;
+  const bx=(w-bw)/2,by=y-fontSize*.55-pad;
+  ctx.fillStyle="rgba(5,5,8,.78)";
+  ctx.beginPath();
+  if(bg==="pill"&&ctx.roundRect)ctx.roundRect(bx,by,bw,bh,bh/2);
+  else ctx.rect(bx,by,bw,bh);
+  ctx.fill();
  }
+ const baseColor=x.fontColor||"#ffffff",
+       outlineColor=x.outlineColor||"#080808",
+       outlineWidth=clamp(num(x.outlineSize,12),0,26)/100*fontSize;
  lines.forEach((line,i)=>{
   const cy=y+i*lineHeight;
-  ctx.shadowColor="#000";ctx.shadowBlur=style==="classic"?4:14;ctx.lineWidth=fontSize*.16;
-  if(style!=="classic"){ctx.strokeStyle="#080808";ctx.strokeText(line,w/2,cy);}
-  ctx.shadowBlur=0;ctx.fillStyle="#fff";ctx.fillText(line,w/2,cy);
+  ctx.shadowColor="#000";ctx.shadowBlur=style==="classic"?4:12;
+  ctx.lineWidth=outlineWidth*2;ctx.lineJoin="round";
+  if(outlineWidth>0){ctx.strokeStyle=outlineColor;ctx.strokeText(line,w/2,cy);}
+  ctx.shadowBlur=0;ctx.fillStyle=baseColor;ctx.fillText(line,w/2,cy);
  });
- if(style==="highlight"){
-  // Use actual Whisper word timestamps when available; do not infer that
-  // a word was spoken merely from the percentage of the whole sentence.
+ if(style==="highlight"&&lines.length===1){
   const words=x.words?.length?x.words:null;
-  if(words&&lines.length===1){
-   const current=words.find(w=>now>=w.start&&now<=w.end+.04);
-   if(current){
-    const wordIndex=words.indexOf(current);
-    const sentence=words.map(w=>w.text).join(" ");
-    const prior=words.slice(0,wordIndex).map(w=>w.text).join(" ");
-    const total=ctx.measureText(sentence).width,start=w/2-total/2;
-    const xStart=start+(prior?ctx.measureText(prior+" ").width:0);
-    const width=ctx.measureText(current.text).width;
-    ctx.shadowColor="#000";ctx.shadowBlur=12;
-    ctx.strokeStyle="#090909";ctx.lineWidth=fontSize*.14;
-    ctx.strokeText(current.text,xStart+width/2,y);
-    ctx.fillStyle="#f4d36e";ctx.fillText(current.text,xStart+width/2,y);
+  let current=null,prior="",sentence=String(x.text||"");
+  if(words){
+   const active=words.find(w=>now>=w.start&&now<=w.end+.04);
+   if(active){
+    const i=words.indexOf(active);
+    current=active.text;prior=words.slice(0,i).map(w=>w.text).join(" ");
+    sentence=words.map(w=>w.text).join(" ");
    }
-  }else if(!words&&lines.length===1){
-   // Manual captions and imported SRT do not contain measured word timings.
-   // Offer a visual approximation; it is not exact speech alignment.
-   const tokens=String(x.text||"").trim().split(/\s+/).filter(Boolean);
+  }else{
+   // Manual captions have no measured word boundaries.
+   const tokens=sentence.trim().split(/\s+/).filter(Boolean);
    if(tokens.length){
     const idx=Math.min(tokens.length-1,Math.floor(progress*tokens.length));
-    const prior=tokens.slice(0,idx).join(" "),current=tokens[idx],text=tokens.join(" ");
-    const total=ctx.measureText(text).width,start=w/2-total/2;
-    const xStart=start+(prior?ctx.measureText(prior+" ").width:0);
-    const width=ctx.measureText(current).width;
-    ctx.fillStyle="#f3cf69";ctx.fillText(current,xStart+width/2,y);
+    current=tokens[idx];prior=tokens.slice(0,idx).join(" ");
+    sentence=tokens.join(" ");
    }
+  }
+  if(current){
+   const fullWidth=ctx.measureText(sentence).width,start=(w-fullWidth)/2;
+   const xStart=start+(prior?ctx.measureText(prior+" ").width:0);
+   const wordWidth=ctx.measureText(current).width;
+   const cx=xStart+wordWidth/2;
+   ctx.lineWidth=outlineWidth*2;
+   if(outlineWidth){ctx.strokeStyle=outlineColor;ctx.strokeText(current,cx,y);}
+   ctx.fillStyle=x.accentColor||"#f4d36e";
+   ctx.fillText(current,cx,y);
   }
  }
  ctx.restore();
