@@ -25,6 +25,7 @@ jobs:
           node --check motion-keyframes.js
           node --check beat-sync.js
           node --check local-transcription.js
+          node --check video-audio-extract.js
       - name: Build deploy directory
         run: bash build.sh
       - name: Smoke-check output
@@ -41,6 +42,7 @@ jobs:
           test -s dist/motion-keyframes.js
           test -s dist/beat-sync.js
           test -s dist/local-transcription.js
+          test -s dist/video-audio-extract.js
           test -s dist/_headers
           grep -q 'script src="./app.js"' dist/index.html
           grep -q 'id="screen"' dist/index.html
