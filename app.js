@@ -390,10 +390,11 @@ function syncVideo(t,shouldPlay){
 function breakLines(text,maxWidth,font){
  ctx.font=font;const result=[];String(text).split("\n").forEach(p=>{let line="";for(const word of p.split(/\s+/)){const test=line?line+" "+word:word;if(ctx.measureText(test).width>maxWidth&&line){result.push(line);line=word;}else line=test;}result.push(line);});return result;
 }
-function drawText(x){
+function drawText(original){
+ const x=PTSMotion.position(original,"title",now);
  const t=(now-x.start)/x.duration,fade=Math.min(1,t*5,(1-t)*5);
  const cx=canvas.width*(x.x??50)/100,cy=canvas.height*(x.y??45)/100;
- ctx.save();ctx.globalAlpha=clamp(fade,0,1);if(x.animation==="none")ctx.globalAlpha=1;
+ ctx.save();ctx.globalAlpha=clamp(fade,0,1)*(x.opacity??100)/100;if(x.animation==="none")ctx.globalAlpha=(x.opacity??100)/100;
  ctx.translate(cx,cy);ctx.rotate((x.rotation||0)*Math.PI/180);
  if(x.animation==="slide")ctx.translate(0,(1-clamp(t*5,0,1))*50);
  if(x.animation==="pop")ctx.scale(.85+.15*clamp(t*6,0,1),.85+.15*clamp(t*6,0,1));
@@ -411,7 +412,7 @@ const overlay=$("selection-overlay"),selectionBox=$("selection-box");
 function activeSelection(){
  if(!selected||!["sticker","title"].includes(selected.kind))return null;
  const item=getSelected();if(!item||now<item.start-.05||now>item.start+item.duration+.05)return null;
- return item;
+ return PTSMotion.position(item,selected.kind,now);
 }
 function overlayGeometry(c,kind){
  const w=canvas.width,h=canvas.height,S=Math.min(w,h);
@@ -445,7 +446,8 @@ function selectElementAt(e){
  const p=pointInCanvas(e);
  const candidates=[...state.titles.map(c=>({kind:"title",c})),...state.stickers.map(c=>({kind:"sticker",c}))];
  for(let i=candidates.length-1;i>=0;i--){
-  const {c,kind}=candidates[i];if(now<c.start||now>=c.start+c.duration)continue;
+  const {c:original,kind}=candidates[i];if(now<original.start||now>=original.start+original.duration)continue;
+  const c=PTSMotion.position(original,kind,now);
   const dim=overlayGeometry(c,kind),cx=canvas.width*(c.x??50)/100,cy=canvas.height*(c.y??45)/100;
   const a=-(c.rotation||0)*Math.PI/180,dx=p.x-cx,dy=p.y-cy;
   const xx=dx*Math.cos(a)-dy*Math.sin(a),yy=dx*Math.sin(a)+dy*Math.cos(a);
@@ -488,6 +490,10 @@ selectionBox.addEventListener("pointermove",e=>{
   const diff=(Math.atan2(p.y-cy,p.x-cx)-d.angle)*180/Math.PI;
   item.rotation=clamp(Math.round((d.rotation+diff)/2)*2,-360,360);
  }
+ if(item.keyframes?.length){
+   PTSMotion.put(item,d.kind,now,{x:item.x,y:item.y,
+    scale:d.kind==="title"?item.size:item.scale,rotation:item.rotation,opacity:item.opacity??100});
+ }
  markDirty();draw(now);
 });
 function finishCanvasDrag(){
@@ -519,7 +525,7 @@ function draw(t){
  state.overlays.filter(c=>now>=c.start&&now<c.start+c.duration)
    .forEach(c=>PTSOverlays.draw(ctx,w,hh,c,now));
  state.titles.filter(c=>now>=c.start&&now<c.start+c.duration).forEach(drawText);
- state.stickers.filter(c=>now>=c.start&&now<c.start+c.duration).forEach(c=>PTSCreative.drawSticker(ctx,w,hh,c,now));
+ state.stickers.filter(c=>now>=c.start&&now<c.start+c.duration).forEach(c=>{const layer=PTSMotion.position(c,"sticker",now);ctx.save();ctx.globalAlpha=(layer.opacity??100)/100;PTSCreative.drawSticker(ctx,w,hh,layer,now);ctx.restore();});
  state.captions.filter(c=>now>=c.start&&now<c.start+c.duration).forEach(drawCaption);
  positionHead();updateOverlay();
 }
