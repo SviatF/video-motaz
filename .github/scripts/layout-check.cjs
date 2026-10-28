@@ -277,6 +277,28 @@ const cases=[
       if(dim!=='1080,1920')throw Error('Full HD recorded dimensions unexpected: '+dim);
       console.log('Full HD output dimensions verified:',dim);
     }else console.log('ffprobe unavailable; checked successful download size and export settings.');
+    // Decode the actual downloaded file in Chromium, not only the chosen
+    // export settings. This avoids accepting a mislabeled or corrupt MP4.
+    const bytes=fs.readFileSync(savedPath).toString('base64');
+    const codec=output.suggestedFilename().endsWith('.mp4')?'video/mp4':'video/webm';
+    const decoded=await qualityPage.evaluate(async ({bytes,codec})=>{
+      const bin=atob(bytes),data=new Uint8Array(bin.length);
+      for(let i=0;i<bin.length;i++)data[i]=bin.charCodeAt(i);
+      const url=URL.createObjectURL(new Blob([data],{type:codec}));
+      try{
+        const vid=document.createElement('video');vid.preload='metadata';
+        const info=await new Promise((resolve,reject)=>{
+          const timeout=setTimeout(()=>reject(Error('Video metadata decoding timeout')),10000);
+          vid.onloadedmetadata=()=>{clearTimeout(timeout);resolve({width:vid.videoWidth,height:vid.videoHeight,duration:vid.duration});};
+          vid.onerror=()=>{clearTimeout(timeout);reject(Error('Video cannot be decoded: '+(vid.error?.message||'unknown')));};
+          vid.src=url;
+        });
+        vid.removeAttribute('src');vid.load();
+        return info;
+      }finally{URL.revokeObjectURL(url);}
+    },{bytes,codec});
+    if(decoded.width!==1080||decoded.height!==1920)throw Error('Actual downloaded video is not 1080×1920: '+JSON.stringify(decoded));
+    console.log('Recorded file decoded successfully:',JSON.stringify(decoded));
     const reset=await qualityPage.$eval('#screen',c=>[c.width,c.height]);
     if(reset[0]!==1080||reset[1]!==1920)throw Error('Preview dimensions not restored after export: '+reset);
     console.log('Full HD export smoke PASS: '+fileBytes+' bytes, '+output.suggestedFilename());
