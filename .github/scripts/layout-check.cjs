@@ -6,7 +6,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const root = path.resolve(__dirname, '../../dist');
-const files = {'/':'index.html','/index.html':'index.html','/app.js':'app.js','/creative-tools.js':'creative-tools.js','/emoji-catalog.js':'emoji-catalog.js','/emoji-labels-uk.js':'emoji-labels-uk.js','/creative-library-v2.js':'creative-library-v2.js','/fullscreen-overlays.js':'fullscreen-overlays.js','/uk-localization.js':'uk-localization.js','/styles.css':'styles.css'};
+const files = {'/':'index.html','/index.html':'index.html','/app.js':'app.js','/creative-tools.js':'creative-tools.js','/emoji-catalog.js':'emoji-catalog.js','/emoji-labels-uk.js':'emoji-labels-uk.js','/creative-library-v2.js':'creative-library-v2.js','/fullscreen-overlays.js':'fullscreen-overlays.js','/uk-localization.js':'uk-localization.js','/motion-keyframes.js':'motion-keyframes.js','/beat-sync.js':'beat-sync.js','/local-transcription.js':'local-transcription.js','/styles.css':'styles.css'};
 const types = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8'};
 const server = createServer((request,response)=>{
   const pathname = new URL(request.url, 'http://127.0.0.1').pathname;
