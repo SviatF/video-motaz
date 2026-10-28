@@ -373,3 +373,6 @@ input[type="range"]{accent-color:#ececec}
   .timeline-foot{padding:0 10px}
   .timeline-foot span:last-child{display:none}
 }
+
+/* Keep all four timeline tracks above the footer on small screens. */
+@media (max-width:680px){.timeline{height:288px;min-height:288px}}
