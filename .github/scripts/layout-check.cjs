@@ -6,7 +6,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const root = path.resolve(__dirname, '../../dist');
-const files = {'/':'index.html','/index.html':'index.html','/app.js':'app.js','/styles.css':'styles.css'};
+const files = {'/':'index.html','/index.html':'index.html','/app.js':'app.js','/creative-tools.js':'creative-tools.js','/styles.css':'styles.css'};
 const types = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8'};
 const server = createServer((request,response)=>{
   const pathname = new URL(request.url, 'http://127.0.0.1').pathname;
@@ -57,9 +57,32 @@ const cases=[
       if(m.lastTrack.bottom>m.track.bottom+2) issues.push('last track overlaps timeline footer');
       if(pageErrors.length) issues.push('page errors: '+pageErrors.join(' | '));
       // The core user flow should remain functional after styling changes.
+      if(!await page.evaluate(()=>!!window.PTSCreative)) issues.push('creative engine not loaded');
       await page.click('#add-title');
       const title=await page.locator('#text-track .clip').count();
       if(title===0) issues.push('adding text layer failed');
+      // Check the newly added creative controls on the wide desktop.
+      if(size.name==='desktop-reference'){
+        await page.locator('[data-library-tab="stickers"]').click();
+        await page.locator('[data-sticker="sale"]').click();
+        if(await page.locator('#fx-track .clip.sticker').count()!==1)issues.push('sticker not added to FX track');
+        if(await page.locator('#prop-scale').count()!==1)issues.push('sticker inspector controls missing');
+        await page.locator('[data-library-tab="effects"]').click();
+        await page.locator('[data-effect="flash"]').click();
+        if(await page.locator('#fx-track .clip.effect').count()!==1)issues.push('FX not added to timeline');
+        if(await page.locator('#prop-intensity').count()!==1)issues.push('FX intensity controls missing');
+        await page.locator('[data-library-tab="music"]').click();
+        await page.locator('[data-music="pulse"]').click();
+        try{await page.waitForFunction(()=>document.querySelectorAll('#audio-track .clip').length>0,{timeout:15000});}
+        catch(e){issues.push('music was not imported to audio track: '+e.message);}
+        const stored=await page.evaluate(()=>JSON.parse(localStorage.getItem('pts-creative-project-v1')||'{}'));
+        if(!stored.stickers?.length||!stored.effects?.length||!stored.audios?.length)issues.push('new layers not persisted');
+        await page.reload({waitUntil:'load'});
+        await page.waitForTimeout(250);
+        if(await page.locator('#fx-track .clip.sticker').count()!==1)issues.push('sticker lost after reload');
+        if(await page.locator('#fx-track .clip.effect').count()!==1)issues.push('FX lost after reload');
+        if(await page.locator('#audio-track .clip').count()!==1)issues.push('music lost after reload');
+      }
       await page.screenshot({path:path.resolve(__dirname,'../../layout-'+size.name+'.png')});
       console.log(size.name,JSON.stringify({stage:m.stage,transport:m.transport,timeline:m.timeline,overflowX:m.overflowX,errors:issues}));
       results.push({size:size.name,issues});
