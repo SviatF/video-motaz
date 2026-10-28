@@ -9,6 +9,9 @@ const assetUrls = new Map(), audioNodes = new Map();
 let db, audioContext, mixDestination, videoSourceNode;
 let selected = null, now = 0, playing = false, frame = 0, startedAt = 0, startedFrom = 0;
 let exportRecorder = null, exportCancelled = false, micRecorder = null, micStream = null;
+const PREVIEW_SHORT_SIDE=1080;
+const EXPORT_QUALITY={"720":{label:"HD",bitrate:8000000},"1080":{label:"Full HD",bitrate:16000000},"1440":{label:"2K",bitrate:28000000},"2160":{label:"4K",bitrate:48000000}};
+let renderShortSide=PREVIEW_SHORT_SIDE;
 let dragClipId = null, toastTimeout = null, loading = false;
 let timelineDrag = null, suppressClipClickUntil = 0, canvasDrag = null;
 let state = {version:1,name:"Рекламний креатив 01",ratio:"9:16",media:[],clips:[],titles:[],captions:[],audios:[],stickers:[],effects:[],overlays:[]};
@@ -296,15 +299,32 @@ function moveSelected(dir){
  else c.start=Math.max(0,c.start+dir*.5);
  persist();
 }
+function frameDimensions(ratio=state.ratio,side=renderShortSide){
+ const aspects={"9:16":[9,16],"4:5":[4,5],"1:1":[1,1],"16:9":[16,9]};
+ const [rw,rh]=aspects[ratio]||aspects["9:16"];
+ const scale=side/Math.min(rw,rh);
+ // Keep integer even dimensions for broad hardware codec support.
+ const even=n=>Math.max(2,Math.round(n/2)*2);
+ return [even(rw*scale),even(rh*scale)];
+}
 function setDimensions(){
- const ratios={"9:16":[720,1280],"4:5":[864,1080],"1:1":[1080,1080],"16:9":[1280,720]};
- const [w,h]=ratios[state.ratio]||ratios["9:16"];if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}
+ const [w,h]=frameDimensions();
+ if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}
+ ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality="high";
  canvas.style.aspectRatio=w+"/"+h;
  const maxW=Math.min(680,Math.max(160,$("canvas-frame").parentElement.clientWidth-25));
  const maxH=Math.min(490,Math.max(150,$("canvas-frame").parentElement.clientHeight-36));
- const scale=Math.min(maxW/w,maxH/h);canvas.style.width=Math.round(w*scale)+"px";canvas.style.height=Math.round(h*scale)+"px";updateOverlay();
+ const scale=Math.min(maxW/w,maxH/h);
+ canvas.style.width=Math.round(w*scale)+"px";canvas.style.height=Math.round(h*scale)+"px";
+ updateOverlay();
 }
-function drawCover(source,w,h){const sw=source.videoWidth||source.naturalWidth,sh=source.videoHeight||source.naturalHeight;if(!sw||!sh)return;const scale=Math.max(w/sw,h/sh),dw=sw*scale,dh=sh*scale;ctx.drawImage(source,(w-dw)/2,(h-dh)/2,dw,dh);}
+function drawCover(source,w,h){
+ const sw=source.videoWidth||source.naturalWidth,sh=source.videoHeight||source.naturalHeight;
+ if(!sw||!sh)return;
+ ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality="high";
+ const scale=Math.max(w/sw,h/sh),dw=sw*scale,dh=sh*scale;
+ ctx.drawImage(source,(w-dw)/2,(h-dh)/2,dw,dh);
+}
 const imageCache=new Map();let activeVideoId=null;
 function syncVideo(t,shouldPlay){
  const c=state.clips.find(c=>t>=c.start&&t<c.start+c.duration),media=c?getMedia(c.mediaId):null;
@@ -506,38 +526,101 @@ async function importSrt(file){
  if(count){selected={kind:"caption",id:state.captions[state.captions.length-1].id};persist();toast("Імпортовано субтитрів: "+count);}else toast("SRT не містить коректних таймкодів.");
 }
 function exportSettings(){
- const choices=["video/mp4;codecs=avc1.42E01E,mp4a.40.2","video/mp4","video/webm;codecs=vp9,opus","video/webm;codecs=vp8,opus","video/webm"];
+ const choices=["video/mp4;codecs=avc1.42E01E,mp4a.40.2","video/mp4;codecs=avc1.42E01E","video/mp4","video/webm;codecs=vp9,opus","video/webm;codecs=vp9","video/webm;codecs=vp8,opus","video/webm"];
  const type=typeof MediaRecorder!=="undefined"?choices.find(t=>MediaRecorder.isTypeSupported(t)):"";
  return {type,extension:type&&type.startsWith("video/mp4")?"mp4":"webm"};
 }
-function openExport(){
- const {type}=exportSettings();
- $("export-resolution").textContent=canvas.width+" × "+canvas.height;
+function getExportQuality(){
+ const value=$("export-quality").value;
+ return {side:EXPORT_QUALITY[value]?Number(value):1080,...(EXPORT_QUALITY[value]||EXPORT_QUALITY["1080"])};
+}
+function updateExportDetails(){
+ const {type,extension}=exportSettings(),quality=getExportQuality();
+ const [w,h]=frameDimensions(state.ratio,quality.side);
+ $("export-resolution").textContent=w+" × "+h;
  $("export-duration").textContent=fmt(duration())+" сек";
- $("export-format").textContent=type?.startsWith("video/mp4")?"MP4":"WebM";
- $("export-message").textContent=type?"Експорт іде в реальному часі. Якість і кодек залежать від браузера.":"Цей браузер не підтримує MediaRecorder.";
+ $("export-format").textContent=type?extension.toUpperCase():"Недоступно";
+ $("export-bitrate").textContent="Відеобітрейт: "+(quality.bitrate/1e6)+" Мбіт/с (запит до браузера) · 30 FPS · аудіо до 256 кбіт/с";
+ $("quality-note").textContent=quality.side===2160
+  ?"4K вимагає потужного пристрою та підтримки кодека; можливі пропущені кадри"
+  :quality.side===1440?"2K · вищі вимоги до процесора та памʼяті"
+  :quality.side===1080?"Full HD · рекомендований баланс якості та швидкості"
+  :"HD · компактніший файл, менше деталей";
  $("start-export").disabled=!type||!canvas.captureStream;
+ if(!type)$("export-message").textContent="Цей браузер не підтримує MediaRecorder.";
+ else $("export-message").textContent="Експорт виконується в реальному часі. Вихідна роздільність не покращує деталі низькоякісного оригіналу. Кодек і фактичний бітрейт визначає браузер.";
+}
+function openExport(){
+ $("export-quality").value=String(state.exportQuality||"1080");
+ updateExportDetails();
  $("export-progress").hidden=true;
+ $("export-progress").value=0;
  $("export-dialog").showModal();
 }
 async function startExport(){
  if(exportRecorder)return;
- const type=exportSettings().type;if(!type){toast("Браузер не підтримує експорт.");return;}
+ const {type}=exportSettings();
+ if(!type){toast("Браузер не підтримує експорт.");return;}
+ const quality=getExportQuality();
+ state.exportQuality=String(quality.side);store();
  stop();await initializeAudio();if(audioContext)await audioContext.resume();
+ // A full-resolution canvas is created BEFORE captureStream. Preview
+ // remains Full HD independently of selected output quality.
+ renderShortSide=quality.side;
+ setDimensions();
+ seek(0);
  const stream=canvas.captureStream(30),tracks=[...stream.getVideoTracks()];
  if(mixDestination)tracks.push(...mixDestination.stream.getAudioTracks());
  const mixed=new MediaStream(tracks),chunks=[];exportCancelled=false;
- let recorder;try{recorder=new MediaRecorder(mixed,{mimeType:type,videoBitsPerSecond:5000000});}catch(e){toast("Не вдалося запустити експорт: "+e.message);return;}
- exportRecorder=recorder;$("export-progress").value=0;$("export-progress").hidden=false;$("start-export").disabled=true;$("cancel-export").textContent="СКАСУВАТИ";$("export-message").textContent="Експорт виконується. Не закривай вкладку.";
+ let recorder;
+ try{
+  recorder=new MediaRecorder(mixed,{mimeType:type,videoBitsPerSecond:quality.bitrate,audioBitsPerSecond:256000});
+ }catch(e){
+  mixed.getTracks().forEach(t=>t.stop());
+  renderShortSide=PREVIEW_SHORT_SIDE;setDimensions();draw(now);
+  toast("Не вдалося запустити експорт: "+e.message);return;
+ }
+ exportRecorder=recorder;
+ $("export-progress").value=0;$("export-progress").hidden=false;
+ $("start-export").disabled=true;$("export-quality").disabled=true;
+ $("cancel-export").textContent="СКАСУВАТИ";
+ $("export-message").textContent="Експорт "+quality.label+" у процесі. Бітрейт, запитаний у браузера: "+(quality.bitrate/1e6)+" Мбіт/с. Не закривай вкладку.";
  recorder.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data);};
- recorder.onerror=e=>{toast("Помилка відеорендера.");console.error(e);};
+ recorder.onerror=e=>{console.error("MediaRecorder export",e);exportCancelled=true;toast("Помилка відеорендера.");};
  recorder.onstop=()=>{
-  exportRecorder=null;stop();mixed.getTracks().forEach(t=>t.stop());$("start-export").disabled=false;$("cancel-export").textContent="ЗАКРИТИ";
-  if(!exportCancelled&&chunks.length){const blob=new Blob(chunks,{type:recorder.mimeType});const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=(state.name||"creative").replace(/[^\w\u0400-\u04FF-]+/g,"-")+"."+(recorder.mimeType.startsWith("video/mp4")?"mp4":"webm");document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);toast("Відео експортовано.");}
+  exportRecorder=null;stop();mixed.getTracks().forEach(t=>t.stop());
+  $("start-export").disabled=false;$("export-quality").disabled=false;
+  $("cancel-export").textContent="ЗАКРИТИ";
+  if(!exportCancelled&&chunks.length){
+   const blob=new Blob(chunks,{type:recorder.mimeType});
+   const url=URL.createObjectURL(blob),a=document.createElement("a");
+   a.href=url;
+   a.download=(state.name||"creative").replace(/[^\w\u0400-\u04FF-]+/g,"-")+"-"+quality.label.replace(/\s/g,"")+"."+(recorder.mimeType.startsWith("video/mp4")?"mp4":"webm");
+   document.body.appendChild(a);a.click();a.remove();
+   setTimeout(()=>URL.revokeObjectURL(url),60000);
+   toast("Відео експортовано: "+quality.label);
+  }else if(!exportCancelled){toast("Запис не містить кадрів.");}
+  renderShortSide=PREVIEW_SHORT_SIDE;
+  setDimensions();seek(0);
   $("export-dialog").close();
  };
- seek(0);await new Promise(r=>setTimeout(r,200));recorder.start(400);play();
- const progressLoop=()=>{if(!exportRecorder)return;$("export-progress").value=duration()?now/duration()*100:100;if(!playing||now>=duration()-.06){setTimeout(()=>{if(exportRecorder&&exportRecorder.state!=="inactive")exportRecorder.stop();},300);}else requestAnimationFrame(progressLoop);};requestAnimationFrame(progressLoop);
+ // Avoid starting playback before the recorder has been armed.
+ await new Promise(r=>setTimeout(r,180));
+ try{recorder.start(400);await play();}
+ catch(e){
+  console.error("Export start failed",e);exportCancelled=true;
+  if(recorder.state!=="inactive")recorder.stop();
+  else {exportRecorder=null;mixed.getTracks().forEach(t=>t.stop());renderShortSide=PREVIEW_SHORT_SIDE;setDimensions();}
+  toast("Експорт зупинено: "+e.message);return;
+ }
+ const progressLoop=()=>{
+  if(!exportRecorder||exportRecorder!==recorder)return;
+  $("export-progress").value=duration()?now/duration()*100:100;
+  if(!playing||now>=duration()-.06){
+   setTimeout(()=>{if(exportRecorder===recorder&&recorder.state!=="inactive")recorder.stop();},300);
+  }else requestAnimationFrame(progressLoop);
+ };
+ requestAnimationFrame(progressLoop);
 }
 async function toggleMic(){
  if(micRecorder&&micRecorder.state==="recording"){micRecorder.stop();return;}
@@ -590,7 +673,7 @@ $("project-name").addEventListener("change",store);
 $("ratio").addEventListener("change",()=>{state.ratio=$("ratio").value;persist();});
 $("zoom").addEventListener("input",redrawTimeline);
 $("play-btn").onclick=play;$("to-start").onclick=()=>{stop();seek(0);};$("forward").onclick=()=>seek(now+1);
-$("export-btn").onclick=openExport;$("start-export").onclick=startExport;
+$("export-btn").onclick=openExport;$("export-quality").addEventListener("change",updateExportDetails);$("start-export").onclick=startExport;
 $("cancel-export").onclick=()=>{if(exportRecorder){exportCancelled=true;exportRecorder.stop();}else $("export-dialog").close();};
 $("export-dialog").addEventListener("cancel",e=>{if(exportRecorder){e.preventDefault();exportCancelled=true;exportRecorder.stop();}});
 $("track-inner").addEventListener("click",e=>{if(e.target.classList.contains("track")||e.target.id==="ruler"){const box=$("track-inner").getBoundingClientRect();stop();seek((e.clientX-box.left)/num($("zoom").value,65));}});
