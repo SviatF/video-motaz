@@ -77,7 +77,14 @@ function renderAssets(){
   persist();
  }));
 }
-function selectClip(kind,id){selected={kind,id};redrawTimeline();renderInspector();}
+function selectClip(kind,id){
+ selected={kind,id};
+ if(kind==="video"||kind==="audio"){
+  const item=getSelected(),source=$("smart-audio-source");
+  if(item&&source&&Array.from(source.options).some(o=>o.value===item.mediaId))source.value=item.mediaId;
+ }
+ redrawTimeline();renderInspector();
+}
 function getSelected(){if(!selected)return null;return ({video:state.clips,title:state.titles,caption:state.captions,audio:state.audios,sticker:state.stickers,effect:state.effects,overlay:state.overlays}[selected.kind]||[]).find(x=>x.id===selected.id);}
 const trackMap={video:"video-track",title:"text-track",sticker:"fx-track",effect:"fx-track",overlay:"overlay-track",caption:"caption-track",audio:"audio-track"};
 function clipList(kind){return {video:state.clips,title:state.titles,sticker:state.stickers,effect:state.effects,overlay:state.overlays,caption:state.captions,audio:state.audios}[kind]||[];}
