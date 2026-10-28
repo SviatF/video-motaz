@@ -1,0 +1,29 @@
+name: PTS Creative Studio · Static QA
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check JavaScript syntax
+        run: node --check app.js
+      - name: Build deploy directory
+        run: bash build.sh
+      - name: Smoke-check output
+        run: |
+          test -s dist/index.html
+          test -s dist/styles.css
+          test -s dist/app.js
+          test -s dist/_headers
+          grep -q 'script src="./app.js"' dist/index.html
+          grep -q 'id="screen"' dist/index.html
+          grep -q 'MediaRecorder' dist/app.js
+          echo 'Cloudflare static output OK'
