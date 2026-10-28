@@ -798,7 +798,8 @@ async function generateCaptions(){
    ?await PTSVideoAudio.audioFromVideo(source.url,{limit:600,onProgress:smartStatus})
    :await(await fetch(source.url)).blob();
   const language=$("auto-caption-language")?.value||"auto";
-  const items=await PTSLocalSpeech.transcribe(file,smartStatus,{language});
+  const quality=$("auto-caption-quality")?.value||"balanced";
+  const items=await PTSLocalSpeech.transcribe(file,smartStatus,{language,quality});
   if(!items.length)throw Error("Мовлення не розпізнано. Перевір, чи є голос у відео.");
   const clips=isVideo?state.clips:state.audios;
   const linked=clips.filter(c=>c.mediaId===source.id);
@@ -835,13 +836,18 @@ async function generateCaptions(){
   const speechEnd=shift+target.duration;
   const gap=Math.max(0,speechEnd-last);
   const exact=generated.some(c=>c.words?.length);
+  const suspicious=items.diagnostics?.warnings?.length||0;
+  const model=PTSLocalSpeech.MODELS[quality]?.label||"Whisper";
   const summary=generated.length+" фраз · "+fmt(target.duration)+" с відео · "+
     (language==="auto"?"мова визначена автоматично":language.toUpperCase());
   const result=$("caption-summary");if(result){result.hidden=false;
-   result.textContent=summary+(gap>3?" · Останні "+fmt(gap)+" с без розпізнаного мовлення":"");}
+   result.textContent=summary+" · "+model+
+    (suspicious?" · Підозрілих фраз: "+suspicious:"")+
+    (gap>3?" · Останні "+fmt(gap)+" с без розпізнаного мовлення":"");}
   smartStatus("Готово: "+generated.length+" фраз. "+
     (exact?"Є часові позначки слів. ":"Є часові позначки фраз. ")+
     (gap>3?"В останніх "+fmt(gap)+" с слова не визначені — перевір звук. ":"")+
+    (suspicious?"Відфільтровано підозрілі шаблонні фрази: "+suspicious+". ":"")+
     "Точність тексту перевір перед публікацією.");
   toast("Автосубтитри додано: "+generated.length+" фраз");
  }catch(e){
