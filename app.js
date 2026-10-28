@@ -78,8 +78,8 @@ function redrawTimeline(){
    const item=document.createElement("button");item.type="button";
    item.className="clip "+kind+(selected&&selected.id===clip.id?" selected":"");
    item.style.left=clip.start*pixels+"px";item.style.width=Math.max(11,clip.duration*pixels-3)+"px";
-   item.title=(kind==="video"?getMedia(clip.mediaId)?.name:kind==="audio"?getMedia(clip.mediaId)?.name:kind==="sticker"?PTSCreative.getSticker(clip.sticker)?.name:kind==="effect"?PTSCreative.getEffect(clip.effect)?.name:clip.text)||"Фрагмент";
-   item.textContent=(kind==="video"?"▣ ":kind==="audio"?"♫ ":kind==="title"?"T ":kind==="sticker"?"✦ ":kind==="effect"?"FX ":"CC ")+(kind==="video"||kind==="audio"?(getMedia(clip.mediaId)?.name||"Немає файлу"):kind==="sticker"?(PTSCreative.getSticker(clip.sticker)?.name||"Стікер"):kind==="effect"?(PTSCreative.getEffect(clip.effect)?.name||"Ефект"):(clip.text||"Текст"));
+   item.title=(kind==="video"?getMedia(clip.mediaId)?.name:kind==="audio"?getMedia(clip.mediaId)?.name:kind==="sticker"?(clip.sticker==="emoji"?(clip.name||clip.emoji):PTSCreative.getSticker(clip.sticker)?.name):kind==="effect"?PTSCreative.getEffect(clip.effect)?.name:clip.text)||"Фрагмент";
+   item.textContent=(kind==="video"?"▣ ":kind==="audio"?"♫ ":kind==="title"?"T ":kind==="sticker"?"✦ ":kind==="effect"?"FX ":"CC ")+(kind==="video"||kind==="audio"?(getMedia(clip.mediaId)?.name||"Немає файлу"):kind==="sticker"?(clip.sticker==="emoji"?(clip.emoji||"❤️")+" EMOJI":PTSCreative.getSticker(clip.sticker)?.name||"Стікер"):kind==="effect"?(PTSCreative.getEffect(clip.effect)?.name||"Ефект"):(clip.text||"Текст"));
    item.addEventListener("click",e=>{e.stopPropagation();selectClip(kind,clip.id);seek(clip.start);});
    if(kind==="video"){
     item.draggable=true;
@@ -108,7 +108,7 @@ function renderInspector(){
  if(selected.kind==="title"||selected.kind==="sticker"){
   const choices=selected.kind==="title"
    ?[['fade','Плавна поява'],['slide','Підйом'],['pop','Масштабування'],['typewriter','Друкарська машинка'],['pulse','Пульсація'],['bounce','Bounce'],['none','Без анімації']]
-   :[['pop','Pop In'],['bounce','Bounce'],['pulse','Pulse'],['float','Floating'],['spin','Spin'],['slide','Slide In']];
+   :[['pop','Pop In'],['bounce','Bounce'],['heartbeat','Heartbeat'],['bounce-in','Bounce In'],['pulse','Pulse'],['float','Floating'],['spin','Spin'],['slide','Slide In'],['jitter','Jitter'],['orbit','Orbit'],['rain','Drop'],['wave','Wiggle'],['flash','Blink'],['flip','Flip'],['swing','Swing'],['drift','Drift']];
   html+='<div class="field"><label for="prop-animation">АНІМАЦІЯ</label><select id="prop-animation">'+choices.map(([id,n])=>'<option value="'+id+'">'+n+'</option>').join('')+'</select></div>';
  }
  if(selected.kind==="title"){
@@ -116,11 +116,13 @@ function renderInspector(){
   html+=field("ВИСОТА РОЗМІЩЕННЯ, %","prop-y",c.y,'type="number" min="5" max="95" step="1"');
  }
  if(selected.kind==="sticker"){
+  if(c.sticker==="emoji")html+=field("EMOJI / СИМВОЛ","prop-emoji",c.emoji||"❤️",'type="text" maxlength="48"');
+  html+=field("ШВИДКІСТЬ АНІМАЦІЇ","prop-speed",c.speed??1,'type="number" min=".25" max="4" step=".25"');
   html+=field("ПОЗИЦІЯ X, %","prop-x",c.x,'type="number" min="0" max="100" step="1"');
   html+=field("ПОЗИЦІЯ Y, %","prop-y",c.y,'type="number" min="0" max="100" step="1"');
   html+=field("МАСШТАБ, %","prop-scale",c.scale,'type="number" min="3" max="90" step="1"');
   html+=field("ПОВОРОТ, °","prop-rotation",c.rotation,'type="number" min="-360" max="360" step="5"');
-  html+='<div class="field"><label for="prop-color">КОЛІР СТІКЕРА</label><input type="color" id="prop-color" value="'+h(c.color||"#ffffff")+'"></div>';
+  if(c.sticker!=="emoji")html+='<div class="field"><label for="prop-color">КОЛІР СТІКЕРА</label><input type="color" id="prop-color" value="'+h(c.color||"#ffffff")+'"></div>';
  }
  if(selected.kind==="effect"){
   html+='<div class="mini">'+h(PTSCreative.getEffect(c.effect)?.desc||"Ефект кадру")+'</div>';
@@ -135,6 +137,8 @@ function renderInspector(){
  if(selected.kind==="title"||selected.kind==="sticker"){$("prop-animation").value=c.animation;inspectorInput("prop-animation",(obj,v)=>obj.animation=v);}
  if(selected.kind==="title"){inspectorInput("prop-size",(obj,v)=>obj.size=clamp(num(v,obj.size),2,20));inspectorInput("prop-y",(obj,v)=>obj.y=clamp(num(v,obj.y),5,95));}
  if(selected.kind==="sticker"){
+  if(c.sticker==="emoji")inspectorInput("prop-emoji",(obj,v)=>obj.emoji=v||"❤️");
+  inspectorInput("prop-speed",(obj,v)=>obj.speed=clamp(num(v,obj.speed??1),.25,4));
   inspectorInput("prop-x",(obj,v)=>obj.x=clamp(num(v,obj.x),0,100));
   inspectorInput("prop-y",(obj,v)=>obj.y=clamp(num(v,obj.y),0,100));
   inspectorInput("prop-scale",(obj,v)=>obj.scale=clamp(num(v,obj.scale),3,90));
@@ -160,8 +164,17 @@ function addTitle(){const obj={id:uid(),text:"ВАШ НОВИЙ КРЕАТИВ",
 function addSticker(id){
  const preset=PTSCreative.getSticker(id);if(!preset)return;
  const text={sale:"−50% OFF",shop:"SHOP NOW ↗",new:"NEW DROP"}[id]||"";
- const obj={id:uid(),sticker:id,text,start:now,duration:2.5,animation:"pop",x:50,y:35,scale:20,rotation:0,color:"#ffffff"};
+ const obj={id:uid(),sticker:id,text,start:now,duration:2.5,animation:"pop",speed:1,x:50,y:35,scale:20,rotation:0,color:"#ffffff"};
  state.stickers.push(obj);selected={kind:"sticker",id:obj.id};persist();toast(preset.name+" додано");
+}
+function addEmoji(emoji,name,animation="bounce"){
+ const obj={id:uid(),sticker:"emoji",emoji,text:"",name:name||emoji,start:now,duration:3,animation,speed:1,x:50,y:40,scale:22,rotation:0,color:"#ffffff"};
+ state.stickers.push(obj);selected={kind:"sticker",id:obj.id};persist();seek(Math.min(now+.3,duration()));
+ toast("Emoji додано: "+emoji);
+}
+function addMotion(name){
+ const motions={bounce:"❤️",heartbeat:"💓",float:"✨",swing:"💫",spin:"🔄",pulse:"💗",jitter:"⚡",orbit:"🌍",rain:"💧",wave:"〰️",flash:"🌟",slide:"➡️",pop:"🎉",flip:"🃏","bounce-in":"🚀",drift:"🦋"};
+ addEmoji(motions[name]||"❤️",name,name);
 }
 function addEffect(id){
  const preset=PTSCreative.getEffect(id);if(!preset)return;
@@ -365,7 +378,7 @@ async function boot(){
 $("file-input").addEventListener("change",async e=>{await importFiles(e.target.files);e.target.value="";});
 $("srt-input").addEventListener("change",async e=>{await importSrt(e.target.files[0]);e.target.value="";});
 PTSCreative.makePanel($("creative-library"),{
-  addSticker,addEffect,
+  addSticker,addEffect,addEmoji,addMotion,
   addMusic:async file=>{await importFiles([file]);toast("Музику додано на аудіодоріжку");},
   error:toast
  });
