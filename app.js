@@ -14,7 +14,7 @@ const EXPORT_QUALITY={"720":{label:"HD",bitrate:8000000},"1080":{label:"Full HD"
 let renderShortSide=PREVIEW_SHORT_SIDE;
 let dragClipId = null, toastTimeout = null, loading = false;
 let timelineDrag = null, suppressClipClickUntil = 0, canvasDrag = null;
-let state = {version:1,name:"Рекламний креатив 01",ratio:"9:16",media:[],clips:[],titles:[],captions:[],audios:[],stickers:[],effects:[],overlays:[],beats:[]};
+let state = {version:1,name:"Рекламний креатив 01",ratio:"9:16",media:[],clips:[],titles:[],captions:[],captionRegions:[],audios:[],stickers:[],effects:[],overlays:[],beats:[]};
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(36));
 const clamp = (x,a,b) => Math.min(b,Math.max(a,x));
 const num = (v,d=0) => Number.isFinite(Number(v)) ? Number(v) : d;
@@ -124,6 +124,18 @@ function redrawTimeline(){
  Object.values(trackMap).forEach(id=>$(id).innerHTML="");
  const beats=$("beat-markers");if(beats){
   beats.innerHTML=(state.beats||[]).slice(0,500).map(t=>'<span class="beat-marker" title="Удар · '+fmt(t)+' с" style="left:'+t*pixels+'px"></span>').join("");
+ }
+ // A full-length visual group sits behind individually timed spoken phrases.
+ const regions=state.captionRegions||[];
+ const captionTrack=$("caption-track"),pixelsPerSecond=pixels;
+ for(const reg of regions){
+  const band=document.createElement("div");
+  band.className="caption-region";
+  band.style.left=Math.max(0,reg.start)*pixelsPerSecond+"px";
+  band.style.width=Math.max(1,reg.duration*pixelsPerSecond-2)+"px";
+  band.setAttribute("aria-label","Автосубтитри · область "+fmt(reg.duration)+" с");
+  band.title="Автосубтитри · весь фрагмент · "+fmt(reg.duration)+" с. Окремі слова з’являються лише під час мовлення.";
+  captionTrack.appendChild(band);
  }
  const groups={video:state.clips,title:state.titles,sticker:state.stickers,effect:state.effects,overlay:state.overlays,caption:state.captions,audio:state.audios};
  Object.keys(groups).forEach(kind=>{
@@ -660,7 +672,21 @@ function sourceFile(){
  if(!meta||!assetUrls.has(id))throw Error("Спочатку вибери відео або аудіофайл у медіатеці.");
  return {id,meta,url:assetUrls.get(id)};
 }
-function smartStatus(message){const el=$("smart-progress");if(el)el.textContent=message;}
+function smartStatus(message){
+ const widget=$("smart-progress"),label=$("smart-progress-message"),title=$("smart-progress-title");
+ if(!widget||!label||!title)return;
+ const str=String(message||"");
+ const progress=str.match(/(\d{1,3})\s*%/);
+ const loading=/завантаження|розпізнавання|витягування|підготовка|декодування|уточнення/i.test(str);
+ const error=/помилка|не вдалося|не підтрим/i.test(str);
+ widget.classList.toggle("smart-processing",loading);
+ widget.classList.toggle("smart-error",error);
+ title.textContent=error?"ПОТРІБНА УВАГА":loading?"ОБРОБКА ГОЛОСУ":/готово/i.test(str)?"СУБТИТРИ СТВОРЕНО":"РОЗУМНИЙ МОНТАЖ";
+ label.textContent=str;
+ label.title=str;
+ const meter=$("smart-progress-meter"),fill=$("smart-progress-fill");
+ if(meter){meter.hidden=!loading;fill.style.width=(progress?Math.min(100,+progress[1]):loading?18:0)+"%";}
+}
 async function analyzeBeats(){
  const button=$("analyze-beats");button.disabled=true;
  let ctxLocal=null;
@@ -693,30 +719,26 @@ function cutBeats(){
  smartStatus("Готово: "+result.cuts+" розрізів. Їх можна редагувати вручну.");
 }
 async function generateCaptions(){
- const button=$("generate-captions");button.disabled=true;
- const original=button.querySelector("b")?.textContent;
- if(button.querySelector("b"))button.querySelector("b").textContent="ОБРОБКА ГОЛОСУ…";
+ const button=$("generate-captions"),b=button.querySelector("b");
+ const original=b?.textContent;button.disabled=true;
+ if(b)b.textContent="ОБРОБКА ГОЛОСУ…";
  try{
   stop();
-  const source=sourceFile();
-  const isVideo=source.meta.kind==="video";
-  if(isVideo)smartStatus("Підготовка відеодоріжки. Далі звук записуватиметься локально в реальному часі.");
-  else smartStatus("Підготовка аудіофайлу…");
+  const source=sourceFile(),isVideo=source.meta.kind==="video";
+  smartStatus(isVideo?"Підготовка відео: звук буде витягнуто на пристрої.":"Підготовка аудіозапису…");
   const file=isVideo
    ?await PTSVideoAudio.audioFromVideo(source.url,{limit:600,onProgress:smartStatus})
    :await(await fetch(source.url)).blob();
-  const items=await PTSLocalSpeech.transcribe(file,smartStatus);
-  if(!items.length)throw Error("Whisper не визначив мовлення. Переконайся, що у відео є чіткий голос.");
-  // Place timestamps relative to the actual timeline clip, not to 00:00
-  // of the source, so re-ordered and trimmed video stays synchronized.
+  const language=$("auto-caption-language")?.value||"auto";
+  const items=await PTSLocalSpeech.transcribe(file,smartStatus,{language});
+  if(!items.length)throw Error("Мовлення не розпізнано. Перевір, чи є голос у відео.");
   const clips=isVideo?state.clips:state.audios;
   const linked=clips.filter(c=>c.mediaId===source.id);
-  const active=(selected&&(selected.kind==="video"||selected.kind==="audio"))
-   ?linked.find(c=>c.id===selected.id):null;
+  const active=selected&&(selected.kind==="video"||selected.kind==="audio")?linked.find(c=>c.id===selected.id):null;
   const target=active||linked[0]||{start:0,trim:0,duration:source.meta.duration};
   const shift=target.start||0,trim=target.trim||0,end=trim+target.duration;
   const style=$("auto-caption-style")?.value||"highlight";
-  const generated=[];
+  const groupId=uid(),generated=[];
   for(const c of items){
    const rangeStart=Math.max(trim,c.start),rangeEnd=Math.min(end,c.start+c.duration);
    if(rangeEnd<=rangeStart+.05)continue;
@@ -725,28 +747,42 @@ async function generateCaptions(){
     end:+(shift+Math.max(0,Math.min(end,w.end)-trim)).toFixed(3)
    }));
    const text=words.length?words.map(w=>w.text).join(" "):c.text;
-   generated.push({
-    id:uid(),start:+(shift+rangeStart-trim).toFixed(3),
+   generated.push({id:uid(),start:+(shift+rangeStart-trim).toFixed(3),
     duration:+(rangeEnd-rangeStart).toFixed(3),text,style,
-    words,sourceId:source.id,automatic:true
-   });
+    words,sourceId:source.id,automatic:true,groupId,
+    fontFamily:"arial",fontSize:4.8,fontColor:"#ffffff",accentColor:"#f4d36e",
+    outlineColor:"#080808",outlineSize:12,placement:82,animation:"pop",background:"none"});
   }
-  if(!generated.length)throw Error("Мовлення не потрапляє в обраний відеофрагмент. Перевір обрізання кліпу.");
+  if(!generated.length)throw Error("Розпізнані слова не потрапляють у вибраний кліп. Перевір обрізання.");
+  // Repeat recognition for the same video replaces old automatic layers,
+  // not duplicate text over itself. Hand-edited or SRT captions stay safe.
+  state.captions=state.captions.filter(c=>!(c.automatic&&c.sourceId===source.id));
+  state.captionRegions=(state.captionRegions||[]).filter(r=>r.sourceId!==source.id);
   state.captions.push(...generated);
+  state.captionRegions.push({id:groupId,sourceId:source.id,
+    start:shift,duration:target.duration,language,createdAt:Date.now()});
   selected={kind:"caption",id:generated[0].id};
   persist();seek(generated[0].start+.05);
-  const exact=generated.some(c=>c.words.length);
-  smartStatus("Готово: "+generated.length+" фрагментів. "+
-    (exact?"Підсвічування синхронізовано з часовими позначками слів. ":"Доступні лише таймкоди фраз. ")+
-    "Перевір текст перед публікацією.");
-  toast("Автосубтитри створено: "+generated.length+" фрагментів");
+  const last=Math.max(...generated.map(c=>c.start+c.duration));
+  const speechEnd=shift+target.duration;
+  const gap=Math.max(0,speechEnd-last);
+  const exact=generated.some(c=>c.words?.length);
+  const summary=generated.length+" фраз · "+fmt(target.duration)+" с відео · "+
+    (language==="auto"?"мова визначена автоматично":language.toUpperCase());
+  const result=$("caption-summary");if(result){result.hidden=false;
+   result.textContent=summary+(gap>3?" · Останні "+fmt(gap)+" с без розпізнаного мовлення":"");}
+  smartStatus("Готово: "+generated.length+" фраз. "+
+    (exact?"Є часові позначки слів. ":"Є часові позначки фраз. ")+
+    (gap>3?"В останніх "+fmt(gap)+" с слова не визначені — перевір звук. ":"")+
+    "Точність тексту перевір перед публікацією.");
+  toast("Автосубтитри додано: "+generated.length+" фраз");
  }catch(e){
-  console.error("Auto subtitles",e);
+  console.error("Auto captions",e);
   smartStatus("Не вдалося створити субтитри: "+e.message);
-  toast("Помилка автосубтитрів: "+e.message);
+  toast("Помилка розпізнавання");
  }finally{
   button.disabled=false;
-  if(button.querySelector("b"))button.querySelector("b").textContent=original||"АВТОСУБТИТРИ З ВІДЕО · ШІ";
+  if(b)b.textContent=original||"АВТОСУБТИТРИ З ВІДЕО · ШІ";
  }
 }
 function exportSettings(){
@@ -865,7 +901,7 @@ async function boot(){
  try{
   db=await createDB();
   const old=JSON.parse(localStorage.getItem(PROJECT_KEY)||"null");
-  if(old&&old.version===1){state={...state,...old,stickers:Array.isArray(old.stickers)?old.stickers:[],effects:Array.isArray(old.effects)?old.effects:[],overlays:Array.isArray(old.overlays)?old.overlays:[],beats:Array.isArray(old.beats)?old.beats:[]};}
+  if(old&&old.version===1){state={...state,...old,stickers:Array.isArray(old.stickers)?old.stickers:[],effects:Array.isArray(old.effects)?old.effects:[],overlays:Array.isArray(old.overlays)?old.overlays:[],beats:Array.isArray(old.beats)?old.beats:[],captionRegions:Array.isArray(old.captionRegions)?old.captionRegions:[]};}
   const all=await allBlobs();for(const a of all)assetUrls.set(a.id,URL.createObjectURL(a.file));
   $("project-name").value=state.name;$("ratio").value=state.ratio;
   redraw();seek(0);
