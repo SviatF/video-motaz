@@ -58,7 +58,17 @@
   <div class="timeline-foot"><span>LOCAL FIRST / NO SUBSCRIPTIONS</span><span>SPACE — PLAY / PAUSE &nbsp; · &nbsp; DELETE — REMOVE &nbsp; · &nbsp; CTRL+S — SAVE</span></div>
 </section>
 <div id="toast" class="toast" aria-live="polite"></div>
-<dialog id="export-dialog"><div class="dialog-inner"><div class="kicker">RENDER / 001</div><h2>ЕКСПОРТ КРЕАТИВУ<span>.</span></h2><p>Файл збирається в реальному часі в браузері. Тримай вкладку відкритою до завершення.</p><div class="export-facts"><div>РОЗДІЛЬНІСТЬ<strong id="export-resolution"></strong></div><div>ТРИВАЛІСТЬ<strong id="export-duration"></strong></div><div>ФОРМАТ<strong id="export-format"></strong></div></div><progress id="export-progress" value="0" max="100" hidden></progress><p id="export-message" class="small">MP4 доступний лише у браузерах із підтримкою відповідного кодека. Інакше — WebM.</p><div class="dialog-actions"><button id="cancel-export" class="ghost">ЗАКРИТИ</button><button id="start-export" class="primary">ПОЧАТИ ЕКСПОРТ ↗</button></div></div></dialog>
+<dialog id="export-dialog"><div class="dialog-inner"><div class="kicker">RENDER / 001</div><h2>ЕКСПОРТ КРЕАТИВУ<span>.</span></h2><p>Файл збирається в реальному часі в браузері. Тримай вкладку відкритою до завершення.</p><div class="export-quality-field">
+<label for="export-quality">ЯКІСТЬ ВІДЕО / ЕКСПОРТ</label>
+<select id="export-quality" aria-label="Якість експорту">
+<option value="720">HD · 720p — швидкий файл</option>
+<option value="1080" selected>FULL HD · 1080p — рекомендовано</option>
+<option value="1440">2K · 1440p — високий бітрейт</option>
+<option value="2160">4K · 2160p — експериментально</option>
+</select>
+<small id="quality-note">Full HD · висока деталізація · для реклами та Reels</small>
+</div>
+<div class="export-facts"><div>РОЗДІЛЬНІСТЬ<strong id="export-resolution"></strong></div><div>ТРИВАЛІСТЬ<strong id="export-duration"></strong></div><div>ФОРМАТ<strong id="export-format"></strong></div></div><p class="export-bitrate" id="export-bitrate"></p><progress id="export-progress" value="0" max="100" hidden></progress><p id="export-message" class="small">MP4 доступний лише у браузерах із підтримкою відповідного кодека. Інакше — WebM.</p><div class="dialog-actions"><button id="cancel-export" class="ghost">ЗАКРИТИ</button><button id="start-export" class="primary">ПОЧАТИ ЕКСПОРТ ↗</button></div></div></dialog>
 <video id="video-source" playsinline preload="auto" hidden></video>
 </div>
 <script src="./emoji-catalog.js" defer></script>
