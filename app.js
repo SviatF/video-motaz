@@ -276,7 +276,22 @@ function renderInspector(){
  }
  if(selected.kind==="effect"){
   html+='<div class="mini">'+h(PTSCreative.getEffect(c.effect)?.desc||"Ефект кадру")+'</div>';
-  html+=field("ІНТЕНСИВНІСТЬ, %","prop-intensity",c.intensity,'type="number" min="0" max="150" step="5"');
+  if(c.effect==="blur"||c.effect==="blur-region"){
+   html+='<div class="blur-hint">'+(c.effect==="blur-region"
+    ?"Перетягни область прямо на відео. Потягни нижній правий кут, щоб змінити її розмір."
+    :"Розмиття всієї площини відео на час цього елемента. Написи та субтитри зверху залишаються чіткими.")+'</div>';
+   html+=field("СИЛА РОЗМИТТЯ, %","blur-strength",c.strength??c.intensity??55,'type="number" min="0" max="100" step="5"');
+   if(c.effect==="blur-region"){
+    html+='<div class="field"><label for="blur-shape">ФОРМА ОБЛАСТІ</label><select id="blur-shape">'+
+     '<option value="rect">Прямокутна</option><option value="round">Згладжені кути</option><option value="ellipse">Овальна</option></select></div>';
+    html+='<div class="blur-fields">';
+    html+=field("ПОЗИЦІЯ X, %","blur-x",c.x??50,'type="number" min="0" max="100" step="1"');
+    html+=field("ПОЗИЦІЯ Y, %","blur-y",c.y??50,'type="number" min="0" max="100" step="1"');
+    html+=field("ШИРИНА ЗОНИ, %","blur-width",c.width??38,'type="number" min="6" max="100" step="1"');
+    html+=field("ВИСОТА ЗОНИ, %","blur-height",c.height??30,'type="number" min="6" max="100" step="1"');
+    html+='</div>';
+   }
+  }else html+=field("ІНТЕНСИВНІСТЬ, %","prop-intensity",c.intensity,'type="number" min="0" max="150" step="5"');
  }
  if(animatable)html+=field("ПРОЗОРІСТЬ, %","prop-motion-opacity",display.opacity??100,'type="number" min="0" max="100" step="5"');
  if(selected.kind!=="video")html+=field("ПОЧАТОК, СЕК","prop-start",fmt(c.start),'type="number" min="0" step=".1"');
@@ -368,7 +383,19 @@ function renderInspector(){
    persist();toast("Стиль застосовано до "+(n+1)+" фраз");
   };
  }
- if(selected.kind==="effect")inspectorInput("prop-intensity",(obj,v)=>obj.intensity=clamp(num(v,obj.intensity),0,150));
+ if(selected.kind==="effect"){
+  if(c.effect==="blur"||c.effect==="blur-region"){
+   inspectorInput("blur-strength",(obj,v)=>obj.strength=clamp(num(v,55),0,100));
+   if(c.effect==="blur-region"){
+    $("blur-shape").value=c.shape||"round";
+    inspectorInput("blur-shape",(obj,v)=>obj.shape=v);
+    for(const [id,key,min,max] of [["blur-x","x",0,100],["blur-y","y",0,100],
+      ["blur-width","width",6,100],["blur-height","height",6,100]]){
+     inspectorInput(id,(obj,v)=>obj[key]=clamp(num(v,obj[key]),min,max));
+    }
+   }
+  }else inspectorInput("prop-intensity",(obj,v)=>obj.intensity=clamp(num(v,obj.intensity),0,150));
+ }
  if(selected.kind!=="video")inspectorInput("prop-start",(obj,v)=>obj.start=Math.max(0,num(v,obj.start)));
  inspectorInput("prop-duration",(obj,v)=>{
   const media=(selected.kind==="video"||selected.kind==="audio")?getMedia(obj.mediaId):null;
