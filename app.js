@@ -544,12 +544,16 @@ function drawText(original){
 /* On-canvas element controls. HTML handles stay outside Canvas captureStream/export. */
 const overlay=$("selection-overlay"),selectionBox=$("selection-box");
 function activeSelection(){
- if(!selected||!["sticker","title"].includes(selected.kind))return null;
+ if(!selected)return null;
  const item=getSelected();if(!item||now<item.start-.05||now>item.start+item.duration+.05)return null;
+ if(selected.kind==="effect"&&item.effect==="blur-region")return item;
+ if(!["sticker","title"].includes(selected.kind))return null;
  return PTSMotion.position(item,selected.kind,now);
 }
 function overlayGeometry(c,kind){
  const w=canvas.width,h=canvas.height,S=Math.min(w,h);
+ if(kind==="effect"&&c.effect==="blur-region")
+  return {width:w*clamp(num(c.width,38),6,100)/100,height:h*clamp(num(c.height,30),6,100)/100};
  if(kind==="sticker"){
   const base=S*.28*((c.scale??20)/20);
   return {width:Math.max(25,c.sticker==="emoji"?base*.83:base*1.3),height:Math.max(25,base*.9)};
@@ -564,12 +568,20 @@ function updateOverlay(){
  const item=activeSelection();
  if(!item||playing||exportRecorder){selectionBox.hidden=true;return;}
  const kind=selected.kind,dim=overlayGeometry(item,kind);
+ const zone=kind==="effect"&&item.effect==="blur-region";
  const x=item.x??50,y=item.y??45;
  selectionBox.hidden=false;
+ selectionBox.classList.toggle("blur-selection",zone);
+ selectionBox.classList.toggle("blur-ellipse",zone&&item.shape==="ellipse");
+ selectionBox.classList.toggle("blur-round",zone&&item.shape==="round");
+ const rot=selectionBox.querySelector(".rotate-knob");
+ if(rot)rot.hidden=zone;
+ const label=selectionBox.querySelector(".selection-name");
+ if(label)label.textContent=zone?"ЗОНА РОЗМИТТЯ · ПЕРЕТЯГНИ / ЗМІНИ РОЗМІР":"ПЕРЕМІСТИТИ · МАСШТАБ";
  selectionBox.style.left=x+"%";selectionBox.style.top=y+"%";
  selectionBox.style.width=Math.max(2,Math.min(dim.width/canvas.width*100,2*Math.min(x,100-x)-4))+"%";
  selectionBox.style.height=Math.max(1,dim.height/canvas.height*100)+"%";
- selectionBox.style.transform="translate(-50%,-50%) rotate("+(item.rotation||0)+"deg)";
+ selectionBox.style.transform="translate(-50%,-50%) rotate("+(zone?0:(item.rotation||0))+"deg)";
 }
 function pointInCanvas(e){
  const rect=canvas.getBoundingClientRect();
@@ -578,13 +590,14 @@ function pointInCanvas(e){
 function selectElementAt(e){
  if(playing||exportRecorder)return;
  const p=pointInCanvas(e);
- const candidates=[...state.titles.map(c=>({kind:"title",c})),...state.stickers.map(c=>({kind:"sticker",c}))];
+ const candidates=[...state.titles.map(c=>({kind:"title",c})),...state.stickers.map(c=>({kind:"sticker",c})),...state.effects.filter(c=>c.effect==="blur-region").map(c=>({kind:"effect",c}))];
  for(let i=candidates.length-1;i>=0;i--){
   const {c:original,kind}=candidates[i];if(now<original.start||now>=original.start+original.duration)continue;
-  const c=PTSMotion.position(original,kind,now);
+  const c=kind==="effect"?original:PTSMotion.position(original,kind,now);
   const dim=overlayGeometry(c,kind),cx=canvas.width*(c.x??50)/100,cy=canvas.height*(c.y??45)/100;
   const a=-(c.rotation||0)*Math.PI/180,dx=p.x-cx,dy=p.y-cy;
   const xx=dx*Math.cos(a)-dy*Math.sin(a),yy=dx*Math.sin(a)+dy*Math.cos(a);
+  if(kind==="effect"&&c.shape==="ellipse"&&Math.pow(xx/(dim.width/2),2)+Math.pow(yy/(dim.height/2),2)>1)continue;
   if(Math.abs(xx)<dim.width*.6+12&&Math.abs(yy)<dim.height*.6+12){
    selectClip(kind,c.id);draw(now);return;
   }
