@@ -114,8 +114,10 @@ function makePanel(node,actions){
    return;
   }
   if(state.tab==="effects"){
-   const list=tools.EFFECTS.filter(s=>matches(s.id+" "+(s._searchEnglish||"")+" "+s.name+" "+s.desc));
+   const list=tools.EFFECTS.filter(s=>matches(s.id+" "+(s._searchEnglish||"")+" "+s.name+" "+s.desc))
+      .sort((a,b)=>Number(["blur","blur-region"].includes(b.id))-Number(["blur","blur-region"].includes(a.id)));
    results.innerHTML=header("РУХ І ОБРОБКА КАДРУ","ЕФЕКТІВ · "+list.length,"Редагуй в інспекторі")+
+    '<p class="motion-hint">▧ На весь кадр або ▣ на зону: обери розмиття, переміщуй ефект на монтажній шкалі та редагуй маску на відео.</p>'+
     '<div class="fx-grid">'+list.map(s=>'<button type="button" class="fx-tile" data-effect="'+s.id+'"><span>'+safe(s.symbol)+'</span><div><b>'+safe(s.name)+'</b><small>'+safe(s.desc)+'</small></div><em>＋</em></button>').join('')+'</div>';
    results.querySelectorAll("[data-effect]").forEach(b=>b.onclick=()=>actions.addEffect(b.dataset.effect));
    return;
