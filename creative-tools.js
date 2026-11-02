@@ -42,7 +42,8 @@ const EFFECTS=[
  {id:"letterbox",name:"Cinema Bars",desc:"Кіношні чорні смуги",symbol:"▰",duration:4},
  {id:"sweep",name:"Light Sweep",desc:"Світловий прохід",symbol:"╱",duration:2},
  {id:"contrast",name:"Sharp Contrast",desc:"Високий контраст",symbol:"◐",duration:3},
- {id:"blur",name:"Dream Blur",desc:"Плавна м'якість",symbol:"◌",duration:3},
+ {id:"blur",name:"Full Frame Blur",desc:"Розмиття всього відеокадру · окремий елемент",symbol:"▧",duration:4},
+  {id:"blur-region",name:"Zone Blur",desc:"Розмиття вибраної області · рухай маску на відео",symbol:"▣",duration:4},
  {id:"sepia",name:"Vintage Film",desc:"Сепія",symbol:"⌘",duration:4},
  {id:"invert",name:"Negative Cut",desc:"Інверсія кольору",symbol:"◩",duration:1},
  {id:"strobe",name:"Strobe Pulse",desc:"Ритмічний строб",symbol:"✳",duration:2},
@@ -1002,7 +1003,8 @@ function beforeFrame(ctx,w,h,effects,t){
   if(e.effect==='shake'){const decay=1-ease(local/Math.max(.01,e.duration));dx+=Math.sin(local*76)*w*.014*k*decay;dy+=Math.cos(local*92)*h*.014*k*decay;}
   if(e.effect==='mono')mono=true;
   if(e.effect==='contrast')ctx.filter='contrast('+(1+.9*k)+') saturate('+(1+.18*k)+')';
-  if(e.effect==='blur')ctx.filter='blur('+(2.3*k)+'px)';
+
+   // Blur is composited by PTSBlur after the source frame is drawn.
   if(e.effect==='sepia')ctx.filter='sepia('+(k*.95)+') contrast(1.1)';
   if(e.effect==='invert')ctx.filter='invert('+(k*.85)+')';
 
