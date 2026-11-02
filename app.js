@@ -419,8 +419,14 @@ function addMotion(name){
 }
 function addEffect(id){
  const preset=PTSCreative.getEffect(id);if(!preset)return;
- const obj={id:uid(),effect:id,start:now,duration:preset.duration,intensity:65};
- state.effects.push(obj);selected={kind:"effect",id:obj.id};persist();toast(preset.name+" додано");
+ const blur=id==="blur"||id==="blur-region";
+ const base=videoEnd()||duration()||8;
+ const obj={id:uid(),effect:id,start:now,duration:blur?Math.max(.5,base-now):preset.duration,intensity:65};
+ if(blur)obj.strength=55;
+ if(id==="blur-region")Object.assign(obj,{x:50,y:50,width:38,height:30,shape:"round"});
+ state.effects.push(obj);selected={kind:"effect",id:obj.id};
+ persist();seek(Math.min(obj.start+.15,obj.start+obj.duration-.01));
+ toast(preset.name+" додано на монтажну шкалу");
 }
 function addOverlay(id){
  const meta=PTSOverlays.getPreset(id);if(!meta)return;
@@ -696,6 +702,9 @@ function draw(t){
  PTSCreative.afterFrame(ctx,w,hh,activeEffects,now);
  state.overlays.filter(c=>now>=c.start&&now<c.start+c.duration)
    .forEach(c=>PTSOverlays.draw(ctx,w,hh,c,now));
+ // Blur is drawn on the same Canvas captured by preview and MediaRecorder.
+ // Titles, captions and stickers remain sharp above blurred video footage.
+ PTSBlur.apply(ctx,w,hh,activeEffects,now);
  state.titles.filter(c=>now>=c.start&&now<c.start+c.duration).forEach(drawText);
  state.stickers.filter(c=>now>=c.start&&now<c.start+c.duration).forEach(c=>{const layer=PTSMotion.position(c,"sticker",now);ctx.save();ctx.globalAlpha=(layer.opacity??100)/100;PTSCreative.drawSticker(ctx,w,hh,layer,now);ctx.restore();});
  state.captions.filter(c=>now>=c.start&&now<c.start+c.duration).forEach(drawCaption);
