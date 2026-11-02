@@ -612,6 +612,7 @@ selectionBox.addEventListener("pointerdown",e=>{
  const startDistance=Math.max(16,Math.hypot(p.x-cx,p.y-cy));
  canvasDrag={id:item.id,kind,mode:e.target.closest("[data-transform]")?.dataset.transform||"move",
   pointerX:p.x,pointerY:p.y,x:item.x??50,y:item.y??45,scale:kind==="title"?item.size:item.scale,
+  width:item.width??38,height:item.height??30,
   rotation:item.rotation||0,angle:Math.atan2(p.y-cy,p.x-cx),distance:startDistance,moved:false};
  selectionBox.setPointerCapture(e.pointerId);
 });
@@ -621,9 +622,17 @@ selectionBox.addEventListener("pointermove",e=>{
  const p=pointInCanvas(e),dx=p.x-d.pointerX,dy=p.y-d.pointerY;
  if(Math.abs(dx)+Math.abs(dy)<1&&!d.moved)return;d.moved=true;
  if(d.mode==="move"){
-  item.x=clamp(d.x+dx/canvas.width*100,0,100);
-  item.y=clamp(d.y+dy/canvas.height*100,0,100);
+  const xMargin=d.kind==="effect"?(item.width??38)/2:0;
+  const yMargin=d.kind==="effect"?(item.height??30)/2:0;
+  item.x=clamp(d.x+dx/canvas.width*100,xMargin,100-xMargin);
+  item.y=clamp(d.y+dy/canvas.height*100,yMargin,100-yMargin);
  }else if(d.mode==="resize"){
+  if(d.kind==="effect"){
+   item.width=clamp(d.width+dx/canvas.width*200,6,100);
+   item.height=clamp(d.height+dy/canvas.height*200,6,100);
+   item.x=clamp(item.x,item.width/2,100-item.width/2);
+   item.y=clamp(item.y,item.height/2,100-item.height/2);
+  }else{
   // The bottom-right resize handle behaves like a design-tool handle:
   // dragging it right/down grows the object; left/up shrinks it.
   // Use pointer displacement, not distance from center (which can reverse
@@ -632,12 +641,13 @@ selectionBox.addEventListener("pointermove",e=>{
   const ratio=clamp(1+delta,.15,5);
   if(d.kind==="title")item.size=clamp(d.scale*ratio,2,25);
   else item.scale=clamp(d.scale*ratio,3,90);
- }else if(d.mode==="rotate"){
+  }
+ }else if(d.mode==="rotate"&&d.kind!=="effect"){
   const cx=d.x*canvas.width/100,cy=d.y*canvas.height/100;
   const diff=(Math.atan2(p.y-cy,p.x-cx)-d.angle)*180/Math.PI;
   item.rotation=clamp(Math.round((d.rotation+diff)/2)*2,-360,360);
  }
- if(item.keyframes?.length){
+ if(d.kind!=="effect"&&item.keyframes?.length){
    PTSMotion.put(item,d.kind,now,{x:item.x,y:item.y,
     scale:d.kind==="title"?item.size:item.scale,rotation:item.rotation,opacity:item.opacity??100});
  }
