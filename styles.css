@@ -767,3 +767,21 @@ dialog::backdrop{backdrop-filter:blur(5px)}
 .video-caption-panel .caption-clear{display:block;width:100%;min-height:32px;padding:8px 6px;font-size:9px;font-weight:850;color:#c6c9d2;background:transparent;border:1px solid #464b54;border-radius:4px;margin:10px 0 0}
 .video-caption-panel .caption-clear:hover{color:#fff;border-color:#b4b8c0}
 .inspector{overflow-x:hidden}
+
+
+/* Blur FX — precise on-canvas masking, separate timeline element */
+.fx-tile[data-effect="blur"],.fx-tile[data-effect="blur-region"]{
+  background:linear-gradient(110deg,#363d47,#1b1d23);border-color:#7c8999}
+.fx-tile[data-effect="blur"]:hover,.fx-tile[data-effect="blur-region"]:hover{border-color:#e3e7ee;background:#3c4654}
+.clip.effect[data-clip-id]{transition:border-color .15s ease,box-shadow .15s ease}
+.selection-box.blur-selection{border:2px solid #d4ecff;background:#c4e4ff12;outline:1px solid #060a0eaa;box-shadow:0 0 0 2px #05101b77,0 0 15px #7dbdeb52}
+.selection-box.blur-selection::before,.selection-box.blur-selection::after{background:#b1d8fb}
+.selection-box.blur-selection.blur-round{border-radius:13%}
+.selection-box.blur-selection.blur-ellipse{border-radius:50%}
+.selection-box.blur-selection .rotate-knob{display:none!important}
+.selection-box.blur-selection .selection-name{max-width:260px;white-space:nowrap;font-size:9px;letter-spacing:.25px;color:#fff;background:#232b35ed;border:1px solid #92a9c4}
+.selection-box.blur-selection .resize-knob{width:20px;height:20px;background:#d7e9ff;border:2px solid #182b45;border-radius:4px;box-shadow:0 0 9px #8db8ec80}
+.blur-hint{color:#b5c0cc;font-size:10px;line-height:1.55;padding:10px 12px;margin:9px 0 10px;border-left:2px solid #9cbfe0;background:#ffffff08}
+.blur-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px 9px;margin-top:8px}
+.blur-fields .field{min-width:0}
+.blur-fields .field input{max-width:100%}
