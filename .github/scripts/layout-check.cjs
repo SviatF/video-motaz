@@ -6,7 +6,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const root = path.resolve(__dirname, '../../dist');
-const files = {'/':'index.html','/index.html':'index.html','/app.js':'app.js','/creative-tools.js':'creative-tools.js','/emoji-catalog.js':'emoji-catalog.js','/emoji-labels-uk.js':'emoji-labels-uk.js','/creative-library-v2.js':'creative-library-v2.js','/fullscreen-overlays.js':'fullscreen-overlays.js','/uk-localization.js':'uk-localization.js','/motion-keyframes.js':'motion-keyframes.js','/beat-sync.js':'beat-sync.js','/local-transcription.js':'local-transcription.js','/video-audio-extract.js':'video-audio-extract.js','/styles.css':'styles.css'};
+const files = {'/':'index.html','/index.html':'index.html','/app.js':'app.js','/creative-tools.js':'creative-tools.js','/emoji-catalog.js':'emoji-catalog.js','/emoji-labels-uk.js':'emoji-labels-uk.js','/creative-library-v2.js':'creative-library-v2.js','/fullscreen-overlays.js':'fullscreen-overlays.js','/blur-effects.js':'blur-effects.js','/uk-localization.js':'uk-localization.js','/motion-keyframes.js':'motion-keyframes.js','/beat-sync.js':'beat-sync.js','/local-transcription.js':'local-transcription.js','/video-audio-extract.js':'video-audio-extract.js','/styles.css':'styles.css'};
 const types = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8'};
 const server = createServer((request,response)=>{
   const pathname = new URL(request.url, 'http://127.0.0.1').pathname;
@@ -89,7 +89,7 @@ const cases=[
           overlays:window.PTSOverlays.PRESETS.filter(x=>/[А-ЯІЇЄҐ]/.test(x.name)).length,
           motion:window.PTSUk.motion('heartbeat')
         }));
-        if(translated.music!==36||translated.fx!==16||translated.sticker!==27||translated.overlays!==16)issues.push('incomplete Ukrainian translations: '+JSON.stringify(translated));
+        if(translated.music!==36||translated.fx!==17||translated.sticker!==27||translated.overlays!==16)issues.push('incomplete Ukrainian translations: '+JSON.stringify(translated));
         if(translated.motion!=='Биття серця')issues.push('motion name not translated');
         const fill=page.locator('#playback-progress-fill');
         if(!(await fill.count()))issues.push('playback progress bar missing');
@@ -289,6 +289,64 @@ const cases=[
       await page.close();
     }
 
+    // Blur FX QA: generated image pixels are blurred only inside mask,
+    // are preserved outside mask, and effects remain editable on timeline.
+    const blurPage=await browser.newPage({viewport:{width:1366,height:800}});
+    const blurErrors=[];blurPage.on('pageerror',e=>blurErrors.push(e.message));
+    await blurPage.goto(address,{waitUntil:'load'});
+    const pixelTest=await blurPage.evaluate(()=>{
+      const c=document.createElement('canvas');c.width=320;c.height=180;
+      const ctx=c.getContext('2d',{willReadFrequently:true});
+      const paint=()=>{ctx.fillStyle='#000000';ctx.fillRect(0,0,160,180);
+        ctx.fillStyle='#ffffff';ctx.fillRect(160,0,160,180);};
+      const value=(x,y)=>ctx.getImageData(x,y,1,1).data[0];
+      paint();const before=value(157,88),outsideBefore=value(157,10);
+      window.PTSBlur.apply(ctx,320,180,[{effect:'blur-region',start:0,duration:8,strength:100,x:50,y:50,width:60,height:55,shape:'rect'}],2);
+      const inside=value(157,88),outside=value(157,10);
+      paint();window.PTSBlur.apply(ctx,320,180,[{effect:'blur',start:0,duration:8,strength:100}],2);
+      const full=value(157,10);
+      paint();window.PTSBlur.apply(ctx,320,180,[{effect:'blur-region',start:0,duration:8,strength:0}],2);
+      const zero=value(157,88);
+      return {before,inside,outsideBefore,outside,full,zero};
+    });
+    if(!(pixelTest.inside>pixelTest.before+18&&pixelTest.full>pixelTest.outsideBefore+18&&pixelTest.outside===pixelTest.outsideBefore&&pixelTest.zero===pixelTest.before)){
+      throw Error('Blur Canvas output invalid (masked edge vs global frame): '+JSON.stringify(pixelTest));
+    }
+    await blurPage.locator('[data-workspace="creative"]').click();
+    await blurPage.locator('[data-library-tab="effects"]').click();
+    if(await blurPage.locator('[data-effect="blur"]').count()!==1||await blurPage.locator('[data-effect="blur-region"]').count()!==1){
+      throw Error('Both blur types must appear in effects library');
+    }
+    await blurPage.locator('[data-effect="blur-region"]').click();
+    if(await blurPage.locator('#fx-track .clip.effect').count()!==1)throw Error('Regional blur missing from FX timeline');
+    if(!await blurPage.locator('#selection-box').isVisible())throw Error('Region mask must be editable on canvas');
+    await blurPage.locator('#blur-shape').selectOption('ellipse');
+    await blurPage.locator('#blur-strength').fill('85');
+    await blurPage.locator('#blur-strength').dispatchEvent('change');
+    const rect=await blurPage.locator('#selection-box').boundingBox();
+    await blurPage.mouse.move(rect.x+rect.width/2,rect.y+rect.height/2);
+    await blurPage.mouse.down();await blurPage.mouse.move(rect.x+rect.width/2+28,rect.y+rect.height/2+17,{steps:5});await blurPage.mouse.up();
+    let saved=await blurPage.evaluate(()=>JSON.parse(localStorage.getItem('pts-creative-project-v1')).effects);
+    if(saved[0].shape!=='ellipse'||saved[0].strength!==85||!(saved[0].x>50)||!(saved[0].y>50)){
+      throw Error('Region inspector/move failed: '+JSON.stringify(saved[0]));
+    }
+    const box2=await blurPage.locator('#selection-box').boundingBox();
+    const handle=blurPage.locator('.blur-selection .resize-knob'),hb=await handle.boundingBox();
+    if(!hb)throw Error('Blur resize handle hidden');
+    await blurPage.mouse.move(hb.x+hb.width/2,hb.y+hb.height/2);
+    await blurPage.mouse.down();await blurPage.mouse.move(hb.x+hb.width/2+24,hb.y+hb.height/2+22,{steps:4});await blurPage.mouse.up();
+    saved=await blurPage.evaluate(()=>JSON.parse(localStorage.getItem('pts-creative-project-v1')).effects);
+    if(!(saved[0].width>38&&saved[0].height>30))throw Error('Blur region could not be resized: '+JSON.stringify(saved[0]));
+    await blurPage.locator('[data-effect="blur"]').click();
+    if(await blurPage.locator('#fx-track .clip.effect').count()!==2)throw Error('Global blur missing from FX timeline');
+    await blurPage.locator('#fill-timeline').click();
+    saved=await blurPage.evaluate(()=>JSON.parse(localStorage.getItem('pts-creative-project-v1')).effects);
+    if(saved[1].effect!=='blur'||saved[1].start!==0||saved[1].duration<7.9)throw Error('Global blur cannot fill the composition');
+    await blurPage.reload({waitUntil:'load'});
+    if(await blurPage.locator('#fx-track .clip.effect').count()!==2)throw Error('Blur timeline elements did not persist');
+    if(blurErrors.length)throw Error('Blur browser exceptions: '+blurErrors.join(' | '));
+    console.log('Blur FX PASS: regional/full-frame pixels, inspector, drag-resize, timeline stretch, persistence');
+    await blurPage.close();
     // Automatic captions from a real local video: synthesize a short video
     // with a non-silent soundtrack, import it through the UI, extract its
     // audio locally, and mock ONLY the Whisper inference (network-heavy).
