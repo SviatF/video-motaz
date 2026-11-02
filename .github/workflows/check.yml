@@ -21,6 +21,7 @@ jobs:
           node --check emoji-labels-uk.js
           node --check creative-library-v2.js
           node --check fullscreen-overlays.js
+          node --check blur-effects.js
           node --check uk-localization.js
           node --check motion-keyframes.js
           node --check beat-sync.js
@@ -38,6 +39,7 @@ jobs:
           test -s dist/emoji-labels-uk.js
           test -s dist/creative-library-v2.js
           test -s dist/fullscreen-overlays.js
+          test -s dist/blur-effects.js
           test -s dist/uk-localization.js
           test -s dist/motion-keyframes.js
           test -s dist/beat-sync.js
